@@ -1,2 +1,4 @@
 .*.un~
 lexprog
+lex.yy.c
+*.lex
