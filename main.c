@@ -3,7 +3,7 @@
 /* A program to perform Euclid's
  * Algorithm to compute a gcd. */
 
-void output_function(int x){}
+void outputFunction(int x){}
 int input(void){ return 0;}
 int gcd (int u, int v)
 {
