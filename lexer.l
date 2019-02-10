@@ -1,6 +1,6 @@
 %{
 extern int yylval;
-int lastline = 1;
+int lastline = 1; // val for returning comment error
 %}
 
 %x COMMT
@@ -22,27 +22,26 @@ ERROR .
 {OCOMM}           {BEGIN(COMMT); lastline = yylineno;}
 <COMMT>[^*\n]*    {/* capture anything that is not a newline */}
 <COMMT>\*[^*/\n]* {/* capture anything after * that is not a comment close */}
-<COMMT>\n         {yylineno++;}
-<COMMT>{CCOMM}    {BEGIN(INITIAL);}
-<COMMT><<EOF>>    {yylineno = lastline;
+<COMMT>\n         {yylineno++; /* eat up newlines */}
+<COMMT>{CCOMM}    {BEGIN(INITIAL); /* start comment mode */}
+<COMMT><<EOF>>    {yylineno = lastline; /* if comment and EOF, report error at correct lineno */
                    fprintf(yyout,"(%d,ERROR,\"/*\")\n",yylineno);
-                   yyterminate();
+                   yyterminate(); /* end the lexing */
                   }
 {KEY}             {fprintf(yyout,"(%d,KEY,\"%s\")\n",yylineno,yytext);}
 {NUM}             {fprintf(yyout,"(%d,NUM,\"%s\")\n",yylineno,yytext);}
 {ID}              {fprintf(yyout,"(%d,ID,\"%s\")\n",yylineno,yytext);}
 {DOUBLESYM}       {fprintf(yyout,"(%d,SYM,\"%s\")\n",yylineno,yytext);}
 {SYM}             {fprintf(yyout,"(%d,SYM,\"%s\")\n",yylineno,yytext);}
-{WHITESPACE}      {} /*clear whitespace */
-<COMMT,INITIAL>\n {yylineno++;} /*clear whitespace */
+{WHITESPACE}      {/*clear whitespace */}
+<COMMT,INITIAL>\n {yylineno++; /*clear newline and update lineno */}
 {ERRORID}         {fprintf(yyout,"(%d,ERROR,\"%s\")\n",yylineno,yytext);
                    return -1;}
 {ERROR}           {fprintf(yyout,"(%d,ERROR,\"%s\")\n",yylineno,yytext);
                    return -1;}
-
 %%
 
-/* no yywrap so link with -ll */
+int yywrap() { return 1; } // compiles only one file at a time, reports that processing is done
 
 int main(int argc,char **argv)
 {
@@ -58,7 +57,7 @@ int main(int argc,char **argv)
         yyin = stdin;
         yyset_out(stdout);
     }
-    else {
+    else { // print usage
         yyout = stdout;
         printf("usage: ./lexerProg [infile] [outfile]\n");
         return 0;
@@ -71,6 +70,6 @@ int main(int argc,char **argv)
 
     yylex(); // run that lexer!
 
-    fclose(yyout);
+    fclose(yyout); // close files
     fclose(yyin);
 }
