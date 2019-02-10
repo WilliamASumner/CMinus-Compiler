@@ -3,3 +3,4 @@ lexprog
 lex.yy.c
 *.lex
 *submit/
+*.zip
