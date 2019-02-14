@@ -7,7 +7,7 @@ lex.yy.c: lexer.l
 	lex lexer.l
 
 clean:
-	rm lex.yy.c *.lex *.out
+	-@rm lex.yy.c *.lex *.out 2>/dev/null || true
 
 # rules for testing against binary output
 run: lex-out.lex lexico-out.lex
