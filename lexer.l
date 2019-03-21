@@ -7,15 +7,15 @@ int lastline = 1; // val for returning comment error
 
 DIG [0-9]
 CHAR [a-z|A-Z]
-ID {CHAR}({DIG}|{CHAR})*
 NUM {DIG}{DIG}*
+ID {CHAR}({DIG}|{CHAR})*
 KEY if|else|int|return|void|while
 DOUBLESYM [<|>|=|!]=
 OCOMM \/\*
 CCOMM \*\/
 SYM [+|\-|*|/|=|<|>|;|,|\(|\)|\[|\]|\{|\}]
 WHITESPACE [ \t]+
-ERRORID {NUM}{ID}
+/*ERRORID {NUM}{ID} */
 ERROR .
 
 %%
@@ -35,8 +35,6 @@ ERROR .
 {SYM}             {fprintf(yyout,"(%d,SYM,\"%s\")\n",yylineno,yytext);}
 {WHITESPACE}      {/*clear whitespace */}
 <COMMT,INITIAL>\n {yylineno++; /*clear newline and update lineno */}
-{ERRORID}         {fprintf(yyout,"(%d,ERROR,\"%s\")\n",yylineno,yytext);
-                   return -1;}
 {ERROR}           {fprintf(yyout,"(%d,ERROR,\"%s\")\n",yylineno,yytext);
                    return -1;}
 %%
