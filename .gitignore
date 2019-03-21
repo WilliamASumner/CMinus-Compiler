@@ -4,4 +4,4 @@ lex.yy.c
 *.lex
 *submit/
 *.zip
-*.c
+*test*
