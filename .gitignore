@@ -5,3 +5,4 @@ lex.yy.c
 *submit/
 *.zip
 *test*
+*.out
