@@ -1,73 +1,74 @@
 %{
-extern int yylval;
+#include <stdio.h>
+#include "ast.h"
+#include "parser.tab.h" // grammer token list
+extern YYSTYPE yylval;
+void yyerror(const char* msg);
 int lastline = 1; // val for returning comment error
+
+// the %x COMMT sets it as a state once a OCOMM is seen
 %}
 
 %x COMMT
 
 DIG [0-9]
-CHAR [a-z|A-Z]
-NUM {DIG}{DIG}*
-ID {CHAR}({DIG}|{CHAR})*
-KEY if|else|int|return|void|while
-DOUBLESYM [<|>|=|!]=
+CHAR [a-zA-Z]
+INT_TOK {DIG}{DIG}*
+IDSTR {CHAR}({DIG}|{CHAR})*
 OCOMM \/\*
 CCOMM \*\/
-SYM [+|\-|*|/|=|<|>|;|,|\(|\)|\[|\]|\{|\}]
 WHITESPACE [ \t]+
-/*ERRORID {NUM}{ID} */
 ERROR .
 
 %%
 {OCOMM}           {BEGIN(COMMT); lastline = yylineno;}
 <COMMT>[^*\n]*    {/* capture anything that is not a newline */}
 <COMMT>\*[^*/\n]* {/* capture anything after * that is not a comment close */}
-<COMMT>\n         {yylineno++; /* eat up newlines */}
+<COMMT,INITIAL>\n {yylineno++; /*clear newline and update lineno */}
 <COMMT>{CCOMM}    {BEGIN(INITIAL); /* start comment mode */}
-<COMMT><<EOF>>    {yylineno = lastline; /* if comment and EOF, report error at correct lineno */
-                   fprintf(yyout,"(%d,ERROR,\"/*\")\n",yylineno);
+<COMMT><<EOF>>    {yylineno = lastline; /* if EOF, report error at correct lineno */
+                   fprintf(stderr,"Error: unclosed comment on line %d\n",yylineno);
                    yyterminate(); /* end the lexing */
                   }
-{KEY}             {fprintf(yyout,"(%d,KEY,\"%s\")\n",yylineno,yytext);}
-{NUM}             {fprintf(yyout,"(%d,NUM,\"%s\")\n",yylineno,yytext);}
-{ID}              {fprintf(yyout,"(%d,ID,\"%s\")\n",yylineno,yytext);}
-{DOUBLESYM}       {fprintf(yyout,"(%d,SYM,\"%s\")\n",yylineno,yytext);}
-{SYM}             {fprintf(yyout,"(%d,SYM,\"%s\")\n",yylineno,yytext);}
-{WHITESPACE}      {/*clear whitespace */}
-<COMMT,INITIAL>\n {yylineno++; /*clear newline and update lineno */}
-{ERROR}           {fprintf(yyout,"(%d,ERROR,\"%s\")\n",yylineno,yytext);
-                   return -1;}
+
+"<="              {yylval.relOperator = LTE; return LTE_TOK;}
+">="              {yylval.relOperator = GTE; return GTE_TOK;}
+"=="              {yylval.relOperator = EQ; return EQ_TOK;}
+"!="              {yylval.relOperator = NEQ; return NEQ_TOK;}
+
+"+"               {yylval.addOperator = PLUS; return PLUS_TOK;}
+"-"               {yylval.addOperator = MINUS;return MINUS_TOK;}
+
+"*"               {yylval.mulOperator = MULT;return MULT_TOK;}
+"/"               {yylval.mulOperator = DIV;return DIV_TOK;}
+
+"="               {return EQUALS;}
+"<"               {yylval.relOperator = LT; return LT_TOK;}
+">"               {yylval.relOperator = GT; return GT_TOK;}
+
+";"               {return SEMICOLON;}
+","               {return COMMA;}
+
+"("               {return LPAREN;}
+")"               {return RPAREN;}
+"["               {return LBRAC;}
+"]"               {return RBRAC;}
+"{"               {return LCURL;}
+"}"               {return RCURL;}
+
+"if"              {return IF;}
+"else"            {return ELSE;}
+
+"int"             {yylval.type = INT; return INT_TOK;}
+"void"            {yylval.type = VOID; return VOID_TOK;}
+
+"return"          {return RETURN;}
+
+"while"           {return WHILE;}
+
+
+{INT_TOK}         {yylval.integer = atoi(yytext); return NUM;}
+{IDSTR}           {yylval.string = strdup(yytext); return ID;}
+{WHITESPACE}      {/*clear whitespace, do nothing*/}
+{ERROR}           {fprintf(stderr, "error: unrecognized token %s\n",yytext);yyerror("");}
 %%
-
-int yywrap() { return 1; } // compiles only one file at a time, reports that processing is done
-
-int main(int argc,char **argv)
-{
-    if (argc == 3) { // using ./lexerProg infile outfile
-        yyin = fopen(argv[1],"r");
-        yyset_out(fopen(argv[2],"w"));
-    }
-    else if (argc ==  2) { // using ./lexerProg infile
-        yyin = fopen(argv[1],"r");
-        yyset_out(fopen("lex-out.lex","w"));
-    }
-    else if (argc == 1) { // using ./lexerProg
-        yyin = stdin;
-        yyset_out(stdout);
-    }
-    else { // print usage
-        yyout = stdout;
-        printf("usage: ./lexerProg [infile] [outfile]\n");
-        return 0;
-    }
-
-    if (yyin == NULL) {
-        printf("Error: file %s could not be found.\n",argv[1]);
-        return -1;
-    }
-
-    yylex(); // run that lexer!
-
-    fclose(yyout); // close files
-    fclose(yyin);
-}
