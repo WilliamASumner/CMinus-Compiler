@@ -6,3 +6,7 @@ lex.yy.c
 *.zip
 *test*
 *.out
+*.output
+*.tab.*
+*.dSYM/
+*.swp
