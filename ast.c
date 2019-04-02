@@ -481,7 +481,7 @@ void print_ast_tree(struct ast_node* root){
                 break;
             }
         default:
-            fprintf(stderr,"error printing ast, improper nodeType\n");
+            fprintf(stderr,"error printing ast: improper nodeType\n");
             exit(1);
     }
     switch (root->nodeType){ // nodes that don't get brackets
