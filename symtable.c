@@ -34,7 +34,6 @@ struct sym_node* table_find(struct sym_table* table, char *symbol) {
 struct sym_node* table_add(struct sym_table *table, char *symbol,enum idType type) {
     int key = hashSymbol(symbol);
     struct sym_node *entry = table->hashtable[key];
-    //printf("\n\nADDING %s TO TABLE\n\n\n",symbol);
 
     if (entry == NULL) { // if 
         entry = malloc(sizeof(struct sym_node)); // add a new first entry
