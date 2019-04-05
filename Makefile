@@ -4,7 +4,7 @@ yaccprog.out: parser.tab.c lex.yy.c ast.c ast.h symtable.c symtable.h
 	gcc -o yaccprog.out parser.tab.c lex.yy.c ast.c symtable.c -ll -ly
 
 debug-yacc: parser.tab.c lex.yy.c ast.c ast.h symtable.c symtable.h
-	gcc -g -o yaccprog.out parser.tab.c lex.yy.c ast.c symtable.c -ll -ly
+	gcc -g -DDEBUG -o yaccprog.out parser.tab.c lex.yy.c ast.c symtable.c -ll -ly
 
 #Create y.tab.c
 parser.tab.c: parser.y lexer.l
@@ -16,7 +16,9 @@ lex.yy.c: lexer.l
 
 clean:
 	-@rm lex.yy.c *.lex *.out 2>/dev/null || true
-	-@rm parser.tab.h parser.tab.c || true
+	-@rm parser.tab.h parser.tab.c 2>/dev/null || true
+	-@rm -r parser.output *.dSYM/ 2>/dev/null || true
+
 
 # rules for testing against binary output
 run: lex-out.lex lexico-out.lex
