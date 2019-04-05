@@ -5,9 +5,9 @@
 
 enum type_spec {INT,VOID};
 enum fact_type {EXPR,VAR,CALL,NUMFACT};
-enum relop {LT,GT,GTE,LTE,EQ,NEQ,UNARYREL = 0};
-enum mulop {MULT,DIV,UNARYMULT=0};
-enum addop {PLUS,MINUS,UNARYADD=0};
+enum relop {UNARYREL,LT,GT,GTE,LTE,EQ,NEQ};
+enum mulop {UNARYMULT,MULT,DIV};
+enum addop {UNARYADD, PLUS,MINUS};
 
 enum ast_node_type {
     PROGRAM_NODE,
@@ -227,7 +227,13 @@ struct call_node* ast_new_call_node(struct sym_node* id, struct args_node* args)
 
 struct args_node* ast_new_args_node(struct expr_node* arg, struct args_node* nextArg);
 
-void print_ast_tree(struct ast_node* root);
+struct args_node* ast_link_args_node(struct args_node* root, struct args_node* attachee);
+
+struct stmt_node* reverse_stmt_list(struct stmt_node* root);
+
+struct local_decs_node* reverse_local_dec_list(struct local_decs_node* root);
+
+void print_ast_tree(struct ast_node* root, FILE* outFile);
 
 void free_ast_tree(struct ast_node* root); // freeing function
 

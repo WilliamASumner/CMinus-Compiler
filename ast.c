@@ -22,17 +22,6 @@ struct dec_list_node* ast_new_dec_list_node(struct var_dec_node* var, struct fun
 
 struct dec_list_node* ast_link_dec_list_node(struct dec_list_node* root, struct dec_list_node* attachee)
 {
-    printf("linking dec node ");
-    if (root->func != NULL)
-        printf("%s with ",root->func->id->symbol);
-    else
-        printf("%s with ",root->var->id->symbol);
-
-    if (attachee->func != NULL)
-        printf("%s ",attachee->func->id->symbol);
-    else
-        printf("%s ",attachee->var->id->symbol);
-
     root->nextDeclaration = attachee;
     return attachee;
 }
@@ -102,7 +91,9 @@ struct stmt_node* ast_new_stmt_node(enum stmt_type type, struct stmt_node* next,
 }
 
 struct stmt_node* ast_link_stmt_node(struct stmt_node* root, struct stmt_node* attachee) {
-    root->next = attachee;
+    if (root != NULL) {
+        root->next = attachee;
+    }
     return root;
 }
 
@@ -217,33 +208,84 @@ struct args_node* ast_new_args_node(struct expr_node* arg, struct args_node* nex
     return node;
 }
 
-void print_ast_tree(struct ast_node* root){
+struct args_node* ast_link_args_node(struct args_node* root, struct args_node* attachee)
+{
+    root->nextArg = attachee;
+    return attachee;
+}
+
+struct stmt_node* reverse_stmt_list(struct stmt_node* root) {
+    struct stmt_node* curr = root;
+    struct stmt_node* prev = NULL;
+    struct stmt_node* next = NULL;
+    while(curr != NULL)
+    {
+        next = curr->next;
+        curr->next = prev;
+        prev = curr;
+        curr = next;
+    }
+    return prev;
+}
+
+struct local_decs_node* reverse_local_dec_list(struct local_decs_node* root) {
+    struct local_decs_node* curr = root;
+    struct local_decs_node* prev = NULL;
+    struct local_decs_node* next = NULL;
+    while(curr != NULL)
+    {
+        next = curr->next;
+        curr->next = prev;
+        prev = curr;
+        curr = next;
+    }
+    return prev; // return the new head
+}
+
+void print_indent(int indent, FILE* outFile)
+{
+    int i = 0;
+    while (i++ < indent*2)
+       fprintf(outFile," ");
+}
+
+void print_ast_tree(struct ast_node* root, FILE* outFile) {
     if (root == NULL) return;
-    switch (root->nodeType){
+    static int indent = 0; // controlling how much indent there is
+    switch(root->nodeType) {
+        case ARGS_NODE:
         case DEC_LIST_NODE:
-        case VAR_DEC_NODE:
-        case LOCAL_DECS_NODE:
+        case ADD_EXPR_NODE:
+        case VAR_NODE:
         case STMT_NODE:
         case EXPR_STMT_NODE:
+        case LOCAL_DECS_NODE:
+        case EXPR_NODE:
+        case SMP_EXPR_NODE:
+        case FACT_NODE:
+        case TERM_NODE:
+
             break;
         default:
-            printf("[");
+            print_indent(indent,outFile);
     }
     switch(root->nodeType) {
         case PROGRAM_NODE:
             {
                 struct program_node* r = (struct program_node*)root;
-                printf("program\n");
-                print_ast_tree((struct ast_node*)r->decList);
+                fprintf(outFile,"[program\n");
+                indent = 1; // reset on a program node (a root)
+                print_ast_tree((struct ast_node*)r->decList,outFile);
+                fprintf(outFile,"]\n");
                 break;
             }
 
         case DEC_LIST_NODE:
             {
                 struct dec_list_node* r = (struct dec_list_node*)root;
-                print_ast_tree((struct ast_node*)r->var);
-                print_ast_tree((struct ast_node*)r->func);
-                print_ast_tree((struct ast_node*)r->nextDeclaration);
+                print_ast_tree((struct ast_node*)r->var,outFile);
+                print_ast_tree((struct ast_node*)r->func,outFile);
+                print_ast_tree((struct ast_node*)r->nextDeclaration,outFile);
                 break;
             }
 
@@ -251,7 +293,7 @@ void print_ast_tree(struct ast_node* root){
             {
                 struct var_dec_node* r = (struct var_dec_node*)root;
                 char* t = r->type == INT ? "int" : "void";
-                printf("var-declaration [%s] [%s]",t,r->id->symbol);
+                fprintf(outFile,"[var-declaration [%s] [%s]]\n",t,r->id->symbol);
                 break;
             }
 
@@ -259,9 +301,27 @@ void print_ast_tree(struct ast_node* root){
             {
                 struct func_dec_node* r = (struct func_dec_node*)root;
                 char* t = r->type == INT ? "int" : "void";
-                printf("fun-declaration\n[%s]\n[%s]\n[params]\n",t,r->id->symbol);
-                print_ast_tree((struct ast_node*)r->params);
-                print_ast_tree((struct ast_node*)r->stmt);
+                fprintf(outFile,"[fun-declaration\n");
+                indent++;
+                print_indent(indent,outFile);
+                fprintf(outFile,"[%s]\n",t);
+                print_indent(indent,outFile);
+                fprintf(outFile,"[%s]\n",r->id->symbol);
+
+                print_indent(indent,outFile);
+                fprintf(outFile,"[params");
+                if (r->params != NULL) {
+                    fprintf(outFile,"\n");
+                }
+                indent++;
+                print_ast_tree((struct ast_node*)r->params,outFile);
+                fprintf(outFile,"]\n"); // close params
+                indent--;
+
+                print_ast_tree((struct ast_node*)r->stmt,outFile);
+                indent--;
+                print_indent(indent,outFile);
+                fprintf(outFile,"]\n");
                 break;
             }
 
@@ -269,19 +329,27 @@ void print_ast_tree(struct ast_node* root){
             {
                 struct params_node* r = (struct params_node*)root;
                 char* t = r->type == INT ? "int" : "void";
-                printf("param [%s] [%s]",t,r->id->symbol);
+                fprintf(outFile,"[param [%s] [%s]",t,r->id->symbol);
                 if (r->id->type == ARRAY)
-                    printf("\\\[\\\[");
-                print_ast_tree((struct ast_node*)r->next);
+                    fprintf(outFile," \\[\\]");
+                fprintf(outFile,"]");
+                if (r->next != NULL) {
+                    fprintf(outFile,"\n");
+                    print_ast_tree((struct ast_node*)r->next,outFile);
+                }
                 break;
             }
 
         case CMP_STMT_NODE:
             {
                 struct cmp_stmt_node* r = (struct cmp_stmt_node*)root;
-                printf("compound-stmt\n");
-                print_ast_tree((struct ast_node*)r->local_dec);
-                print_ast_tree((struct ast_node*)r->stmt);
+                fprintf(outFile,"[compound-stmt\n");
+                indent++;
+                print_ast_tree((struct ast_node*)r->local_dec,outFile);
+                print_ast_tree((struct ast_node*)r->stmt,outFile);
+                indent--;
+                print_indent(indent,outFile);
+                fprintf(outFile,"]\n");
                 break;
             }
 
@@ -289,8 +357,8 @@ void print_ast_tree(struct ast_node* root){
             {
                 struct local_decs_node* r = (struct local_decs_node*)root;
                 // no printing to be done here
-                print_ast_tree((struct ast_node*)r->var_dec);
-                print_ast_tree((struct ast_node*)r->next);
+                print_ast_tree((struct ast_node*)r->var_dec,outFile);
+                print_ast_tree((struct ast_node*)r->next,outFile);
                 break;
             }
 
@@ -299,147 +367,206 @@ void print_ast_tree(struct ast_node* root){
                 struct stmt_node* r = (struct stmt_node*)root;
                 switch (r->expr_type) {
                     case EXPRST:
-                        print_ast_tree((struct ast_node*)r->typed_stmt.expr_stmt);
+                        print_ast_tree((struct ast_node*)r->typed_stmt.expr_stmt,outFile);
                         break;
                     case CMP:
-                        print_ast_tree((struct ast_node*)r->typed_stmt.cmp_stmt);
+                        print_ast_tree((struct ast_node*)r->typed_stmt.cmp_stmt,outFile);
                         break;
                     case SEL:
-                        print_ast_tree((struct ast_node*)r->typed_stmt.sel_stmt);
+                        print_ast_tree((struct ast_node*)r->typed_stmt.sel_stmt,outFile);
                         break;
                     case ITER:
-                        print_ast_tree((struct ast_node*)r->typed_stmt.iter_stmt);
+                        print_ast_tree((struct ast_node*)r->typed_stmt.iter_stmt,outFile);
                         break;
                     case RET:
-                        print_ast_tree((struct ast_node*)r->typed_stmt.ret_stmt);
+                        print_ast_tree((struct ast_node*)r->typed_stmt.ret_stmt,outFile);
                         break;
                     default:
                         fprintf(stderr,"error printing ast tree\n");
                         exit(1);
                 }
-                print_ast_tree((struct ast_node*)r->next);
+                print_ast_tree((struct ast_node*)r->next,outFile);
                 break;
             }
 
         case EXPR_STMT_NODE:
             {
                 struct expr_stmt_node* r = (struct expr_stmt_node*)root;
-                if (r->expr == NULL)
-                    printf("[;]");
+                if (r->expr == NULL) {
+                    print_indent(indent,outFile);
+                    fprintf(outFile,"[;]\n");
+                }
                 else
-                    print_ast_tree((struct ast_node*)r->expr);
+                    print_ast_tree((struct ast_node*)r->expr,outFile);
                 break;
             }
 
         case SEL_STMT_NODE:
             {
                 struct sel_stmt_node* r = (struct sel_stmt_node*)root;
-                printf("selection-stmt\n");
-                print_ast_tree((struct ast_node*)r->if_expr);
-                print_ast_tree((struct ast_node*)r->if_stmt);
-                print_ast_tree((struct ast_node*)r->else_stmt);
+                fprintf(outFile,"[selection-stmt");
+                indent++;
+                print_indent(indent,outFile);
+                print_ast_tree((struct ast_node*)r->if_expr,outFile);
+                fprintf(outFile,"\n");
+                print_indent(indent,outFile);
+                print_ast_tree((struct ast_node*)r->if_stmt,outFile);
+                if (r->else_stmt != NULL) {
+                    print_indent(indent,outFile);
+                    fprintf(outFile,"\n");
+                }
+
+                print_ast_tree((struct ast_node*)r->else_stmt,outFile);
+                fprintf(outFile,"\n");
+                indent--;
+                print_indent(indent,outFile);
+                fprintf(outFile,"]\n");
                 break;
             }
 
         case ITER_STMT_NODE:
             {
                 struct iter_stmt_node* r = (struct iter_stmt_node*)root;
-                printf("iteration-stmt\n");
-                print_ast_tree((struct ast_node*)r->while_expr);
-                print_ast_tree((struct ast_node*)r->while_stmt);
+                fprintf(outFile,"[iteration-stmt");
+                indent++;
+                print_ast_tree((struct ast_node*)r->while_expr,outFile);
+                fprintf(outFile,"\n");
+                print_ast_tree((struct ast_node*)r->while_stmt,outFile);
+                indent--;
+                print_indent(indent,outFile);
+                fprintf(outFile,"]\n");
                 break;
             }
 
         case RET_STMT_NODE:
             {
                 struct ret_stmt_node* r = (struct ret_stmt_node*)root;
-                printf("return-stmt");
-                print_ast_tree((struct ast_node*)r->ret_expr);
+                fprintf(outFile,"[return-stmt");
+                if (r->ret_expr != NULL)
+                    fprintf(outFile," ");
+                print_ast_tree((struct ast_node*)r->ret_expr,outFile);
+                fprintf(outFile,"]\n");
                 break;
             }
 
         case EXPR_NODE:
             {
                 struct expr_node* r = (struct expr_node*)root;
-                if (r->var != NULL)
-                    printf("= ");
-                print_ast_tree((struct ast_node*)r->var);
-                print_ast_tree((struct ast_node*)r->expr);
-                print_ast_tree((struct ast_node*)r->smp_expr);
+                if (r->var != NULL) {
+                    print_indent(indent,outFile);
+                    fprintf(outFile,"[= ");
+                    print_ast_tree((struct ast_node*)r->var,outFile);
+                    if (r->expr == NULL) {
+                        fprintf(stderr,"error: malformed ast, missing expr in expr node");
+                        exit(1);
+                    }
+                    fprintf(outFile," ");
+                    print_ast_tree((struct ast_node*)r->expr,outFile);
+                }
+                else {
+                    print_ast_tree((struct ast_node*)r->smp_expr,outFile);
+                }
+                if (r->var != NULL) {
+                    if (r->expr != NULL)
+                        print_indent(indent,outFile);
+                    fprintf(outFile,"]\n");
+                }
                 break;
             }
 
         case VAR_NODE:
             {
                 struct var_node* r = (struct var_node*)root;
-                printf("var [%s]",r->id->symbol);
-                print_ast_tree((struct ast_node*)r->array_expr);
+                fprintf(outFile,"[");
+                fprintf(outFile,"var [%s]",r->id->symbol);
+                print_ast_tree((struct ast_node*)r->array_expr,outFile);
+                fprintf(outFile,"]");
                 break;
             }
 
         case SMP_EXPR_NODE:
             {
                 struct smp_expr_node* r = (struct smp_expr_node*)root;
-                char *t = "";
+                if (r->op != UNARYREL) {
+                    fprintf(outFile,"\n");
+                    print_indent(indent,outFile);
+                }
                 switch(r->op) {
                     case LT:
-                        t = "<";
+                        fprintf(outFile,"[< ");
                         break;
                     case GT:
-                        t = ">";
+                        fprintf(outFile,"[> ");
                         break;
                     case GTE:
-                        t = ">=";
+                        fprintf(outFile,"[>= ");
                         break;
                     case LTE:
-                        t = "<=";
+                        fprintf(outFile,"[<= ");
                         break;
                     case EQ:
-                        t = "==";
+                        fprintf(outFile,"[== ");
                         break;
                     case NEQ:
-                        t = "!=";
+                        fprintf(outFile,"[!= ");
                         break;
+                    case UNARYREL:
+                        break;
+                    default:
+                        fprintf(stderr,"error printing ast: improper relop\n");
                 }
-                printf("%s",t);
 
-                print_ast_tree((struct ast_node*)r->left);
-                print_ast_tree((struct ast_node*)r->right);
+                print_ast_tree((struct ast_node*)r->left,outFile);
+                print_ast_tree((struct ast_node*)r->right,outFile);
+                if (r->op != UNARYREL)
+                    fprintf(outFile,"]");
                 break;
             }
 
         case ADD_EXPR_NODE:
             {
                 struct add_expr_node* r = (struct add_expr_node*)root;
-                char *t = "";
+                if  (r->op != UNARYADD) {
+                    fprintf(outFile,"\n");
+                    print_indent(indent,outFile);
+                }
                 switch (r->op) {
                     case PLUS:
-                        t = "+";
+                        fprintf(outFile,"[+ ");
                         break;
                     case MINUS:
-                        t = "-";
+                        fprintf(outFile,"[- ");
+                        break;
+                    case UNARYADD:
+                        break;
+                    default:
+                        fprintf(stderr,"error printing ast: improper addop\n");
                 }
-                printf("%s",t);
-
-                print_ast_tree((struct ast_node*)r->expr);
-                print_ast_tree((struct ast_node*)r->term);
+                print_ast_tree((struct ast_node*)r->expr,outFile);
+                print_ast_tree((struct ast_node*)r->term,outFile);
+                if (r->op != UNARYADD)
+                    fprintf(outFile,"]");
                 break;
             }
 
         case TERM_NODE:
             {
                 struct term_node* r = (struct term_node*)root;
-                char *t = "";
                 switch (r->op) {
                     case MULT:
-                        t = "*";
+                        fprintf(outFile,"[* ");
                         break;
                     case DIV:
-                        t = "/";
+                        fprintf(outFile,"[/ ");
+                    case UNARYMULT:
+                        break;
+                    default:
+                        fprintf(stderr,"error printing ast: improper multop\n");
                 }
-                printf("%s",t);
-                print_ast_tree((struct ast_node*)r->term);
-                print_ast_tree((struct ast_node*)r->factor);
+                print_ast_tree((struct ast_node*)r->term,outFile);
+                print_ast_tree((struct ast_node*)r->factor,outFile);
+                if (r->op != UNARYMULT)
+                    fprintf(outFile,"]");
                 break;
             }
 
@@ -448,16 +575,16 @@ void print_ast_tree(struct ast_node* root){
                 struct factor_node* r = (struct factor_node*)root;
                 switch (r->factor_type) {
                     case EXPR:
-                        print_ast_tree((struct ast_node*)r->factor.expr);
+                        print_ast_tree((struct ast_node*)r->factor.expr,outFile);
                         break;
                     case VAR:
-                        print_ast_tree((struct ast_node*)r->factor.var);
+                        print_ast_tree((struct ast_node*)r->factor.var,outFile);
                         break;
                     case CALL:
-                        print_ast_tree((struct ast_node*)r->factor.call);
+                        print_ast_tree((struct ast_node*)r->factor.call,outFile);
                         break;
                     case NUMFACT: // nothing to do on a number
-                        printf("%d",r->factor.number);
+                        fprintf(outFile,"[%d]",r->factor.number);
                         break;
                     default:
                         fprintf(stderr,"error: malformed AST, improper factor_type %d in fact node\n",r->factor_type);
@@ -468,31 +595,28 @@ void print_ast_tree(struct ast_node* root){
         case CALL_NODE:
             {
                 struct call_node* r = (struct call_node*)root;
-                printf("call\n[%s]\n[args ",r->id->symbol);
-                print_ast_tree((struct ast_node*)r->args);
+                fprintf(outFile,"[call\n");
+                indent++;
+                print_indent(indent,outFile);
+                fprintf(outFile,"[%s]\n",r->id->symbol);
+                print_indent(indent,outFile);
+                fprintf(outFile,"[args ");
+                print_ast_tree((struct ast_node*)r->args,outFile);
+                indent--;
+                fprintf(outFile,"]\n");
                 break;
             }
 
         case ARGS_NODE:
             {
                 struct args_node* r = (struct args_node*)root;
-                print_ast_tree((struct ast_node*)r->arg);
-                print_ast_tree((struct ast_node*)r->nextArg);
+                print_ast_tree((struct ast_node*)r->arg,outFile);
+                print_ast_tree((struct ast_node*)r->nextArg,outFile);
                 break;
             }
         default:
             fprintf(stderr,"error printing ast: improper nodeType\n");
             exit(1);
-    }
-    switch (root->nodeType){ // nodes that don't get brackets
-        case DEC_LIST_NODE:
-        case VAR_DEC_NODE:
-        case LOCAL_DECS_NODE:
-        case STMT_NODE:
-        case EXPR_STMT_NODE:
-            break;
-        default:
-            printf("]");
     }
 }
 
@@ -503,7 +627,6 @@ void free_ast_tree(struct ast_node * root) {
             {
                 struct program_node* r = (struct program_node*) root;
                 free_ast_tree((struct ast_node*)r->decList);
-                free(root);
                 break;
             }
 
@@ -675,8 +798,8 @@ void free_ast_tree(struct ast_node * root) {
                         break;
                     default:
                         fprintf(stderr,"error: malformed AST, improper factor_type in fact node\n");
-                }
                         exit(1);
+                }
                 break;
             }
         case CALL_NODE:
