@@ -1,3 +1,5 @@
+#use create file file
+default: yaccprog.out
 
 #Create yacc program
 yaccprog.out: parser.tab.c lex.yy.c ast.c ast.h symtable.c symtable.h
