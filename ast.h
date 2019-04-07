@@ -1,8 +1,12 @@
+// The Almighty AST Header File
+// Written by Will Sumner
+// CS 1622: Intro to Compilers
+// University of Pittsburgh, Spring 2019
+// This file contains function prototypes
+// and struct/enum declarations
+
 #ifndef AST_H
 #define AST_H
-
-#include "symtable.h"
-
 enum type_spec {INT,VOID};
 enum fact_type {EXPR,VAR,CALL,NUMFACT};
 enum relop {UNARYREL,LT,GT,GTE,LTE,EQ,NEQ};
@@ -180,54 +184,109 @@ struct ast_node {
     enum ast_node_type nodeType;
 };
 
-struct program_node* ast_new_program_node(struct dec_list_node* decList);
+struct program_node* ast_new_program_node(
+        struct dec_list_node* decList);
 
-struct dec_list_node* ast_new_dec_list_node(struct var_dec_node* var, struct func_dec_node* func, struct dec_list_node* nextDeclaration);
+struct dec_list_node* ast_new_dec_list_node(
+        struct var_dec_node* var,
+        struct func_dec_node* func,
+        struct dec_list_node* nextDeclaration);
 
-struct dec_list_node* ast_link_dec_list_node(struct dec_list_node* root, struct dec_list_node* attachee);
+struct dec_list_node* ast_link_dec_list_node(
+        struct dec_list_node* root,
+        struct dec_list_node* attachee);
 
-struct var_dec_node* ast_new_var_dec_node(enum type_spec type, struct sym_node* id, int arraySize);
+struct var_dec_node* ast_new_var_dec_node(
+        enum type_spec type,
+        struct sym_node* id,
+        int arraySize);
 
-struct func_dec_node* ast_new_func_dec_node(enum type_spec type, struct sym_node* id, struct params_node* params, struct cmp_stmt_node* stmt);
-
-
-struct params_node* ast_new_params_node(enum type_spec type, struct sym_node* id, struct params_node* next);
-
-struct params_node* ast_link_params_node(struct params_node* root, struct params_node*attachee);
-
-struct cmp_stmt_node* ast_new_cmp_stmt_node(struct local_decs_node* local_dec, struct stmt_node* stmt);
-
-struct local_decs_node* ast_new_local_decs_node(struct var_dec_node* var_dec, struct local_decs_node* next);
+struct func_dec_node* ast_new_func_dec_node(
+        enum type_spec type,
+        struct sym_node* id,
+        struct params_node* params,
+        struct cmp_stmt_node* stmt);
 
 
-struct stmt_node* ast_new_stmt_node(enum stmt_type type, struct stmt_node* next, union sub_stmt typed_stmt);
+struct params_node* ast_new_params_node(enum type_spec type,
+        struct sym_node* id,
+        struct params_node* next);
 
-struct stmt_node* ast_link_stmt_node(struct stmt_node* root, struct stmt_node* attachee);
+struct params_node* ast_link_params_node(
+        struct params_node* root,
+        struct params_node*attachee);
 
-struct expr_stmt_node* ast_new_expr_stmt_node(struct expr_node* expr);
+struct cmp_stmt_node* ast_new_cmp_stmt_node(
+        struct local_decs_node* local_dec,
+struct stmt_node* stmt);
 
-struct sel_stmt_node* ast_new_sel_stmt_node(struct expr_node* if_expr, struct stmt_node* if_stmt, struct stmt_node* else_stmt);
+struct local_decs_node* ast_new_local_decs_node(
+        struct var_dec_node* var_dec,
+struct local_decs_node* next);
 
-struct iter_stmt_node* ast_new_iter_stmt_node(struct expr_node* while_expr, struct stmt_node* while_stmt);
 
-struct ret_stmt_node* ast_new_ret_stmt_node(struct expr_node* ret_expr);
+struct stmt_node* ast_new_stmt_node(
+        enum stmt_type type,
+        struct stmt_node* next,
+        union sub_stmt typed_stmt);
 
-struct expr_node* ast_new_expr_node(struct var_node* var, struct expr_node* expr, struct smp_expr_node* smp_expr);
+struct stmt_node* ast_link_stmt_node(
+        struct stmt_node* root,
+        struct stmt_node* attachee);
 
-struct var_node* ast_new_var_node(struct sym_node* id, struct expr_node* array_expr);
-struct smp_expr_node* ast_new_smp_expr_node(enum relop op, struct add_expr_node* left, struct add_expr_node* right);
+struct expr_stmt_node* ast_new_expr_stmt_node(
+        struct expr_node* expr);
 
-struct add_expr_node* ast_new_add_expr_node(enum addop op, struct add_expr_node* expr, struct term_node* term);
+struct sel_stmt_node* ast_new_sel_stmt_node(
+        struct expr_node* if_expr,
+        struct stmt_node* if_stmt,
+        struct stmt_node* else_stmt);
 
-struct term_node* ast_new_term_node(enum mulop op, struct term_node* term, struct factor_node* factor);
+struct iter_stmt_node* ast_new_iter_stmt_node(
+        struct expr_node* while_expr,
+        struct stmt_node* while_stmt);
 
-struct factor_node* ast_new_factor_node(enum fact_type factor_type, union fact_union factor);
+struct ret_stmt_node* ast_new_ret_stmt_node(
+        struct expr_node* ret_expr);
 
-struct call_node* ast_new_call_node(struct sym_node* id, struct args_node* args);
+struct expr_node* ast_new_expr_node(
+        struct var_node* var,
+        struct expr_node* expr,
+        struct smp_expr_node* smp_expr);
 
-struct args_node* ast_new_args_node(struct expr_node* arg, struct args_node* nextArg);
+struct var_node* ast_new_var_node(
+        struct sym_node* id,
+        struct expr_node* array_expr);
+struct smp_expr_node* ast_new_smp_expr_node(
+        enum relop op,
+        struct add_expr_node* left,
+        struct add_expr_node* right);
 
-struct args_node* ast_link_args_node(struct args_node* root, struct args_node* attachee);
+struct add_expr_node* ast_new_add_expr_node(
+        enum addop op,
+        struct add_expr_node* expr,
+        struct term_node* term);
+
+struct term_node* ast_new_term_node(
+        enum mulop op,
+        struct term_node* term,
+        struct factor_node* factor);
+
+struct factor_node* ast_new_factor_node(
+        enum fact_type factor_type,
+        union fact_union factor);
+
+struct call_node* ast_new_call_node(
+        struct sym_node* id,
+        struct args_node* args);
+
+struct args_node* ast_new_args_node(
+        struct expr_node* arg,
+        struct args_node* nextArg);
+
+struct args_node* ast_link_args_node(
+        struct args_node* root,
+        struct args_node* attachee);
 
 struct stmt_node* reverse_stmt_list(struct stmt_node* root);
 
@@ -236,5 +295,7 @@ struct local_decs_node* reverse_local_dec_list(struct local_decs_node* root);
 void print_ast_tree(struct ast_node* root, FILE* outFile);
 
 void free_ast_tree(struct ast_node* root); // freeing function
+
+void analyze_ast_tree(struct ast_node*root);
 
 #endif

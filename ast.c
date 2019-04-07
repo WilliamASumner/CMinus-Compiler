@@ -1,8 +1,18 @@
+// The Almighty AST
+// Written by Will Sumner
+// CS 1622: Intro to Compilers
+// University of Pittsburgh, Spring 2019
+// This file contains functions for manipulating the AST
+// The code here is not clean
+// but it will be cleaned at a later date
 #include <stdlib.h>
 #include <stdio.h>
 #include "ast.h"
+#include "symtable.h"
+#include "errors.h"
 
-struct program_node* ast_new_program_node(struct dec_list_node* decList)
+struct program_node* ast_new_program_node(
+        struct dec_list_node* decList)
 {
     struct program_node* node = malloc(sizeof(struct program_node));
     node->nodeType = PROGRAM_NODE;
@@ -10,7 +20,10 @@ struct program_node* ast_new_program_node(struct dec_list_node* decList)
     return node;
 }
 
-struct dec_list_node* ast_new_dec_list_node(struct var_dec_node* var, struct func_dec_node* func, struct dec_list_node* nextDeclaration)
+struct dec_list_node* ast_new_dec_list_node(
+        struct var_dec_node* var,
+        struct func_dec_node* func,
+        struct dec_list_node* nextDeclaration)
 {
     struct dec_list_node* node = malloc(sizeof(struct dec_list_node));
     node->nodeType = DEC_LIST_NODE;
@@ -20,13 +33,18 @@ struct dec_list_node* ast_new_dec_list_node(struct var_dec_node* var, struct fun
     return node;
 }
 
-struct dec_list_node* ast_link_dec_list_node(struct dec_list_node* root, struct dec_list_node* attachee)
+struct dec_list_node* ast_link_dec_list_node(
+        struct dec_list_node* root,
+        struct dec_list_node* attachee)
 {
     root->nextDeclaration = attachee;
     return attachee;
 }
 
-struct var_dec_node* ast_new_var_dec_node(enum type_spec type, struct sym_node* id, int arraySize)
+struct var_dec_node* ast_new_var_dec_node(
+        enum type_spec type,
+        struct sym_node* id,
+        int arraySize)
 {
     struct var_dec_node* node = malloc(sizeof(struct var_dec_node));
     node->nodeType = VAR_DEC_NODE;
@@ -36,7 +54,11 @@ struct var_dec_node* ast_new_var_dec_node(enum type_spec type, struct sym_node* 
     return node;
 }
 
-struct func_dec_node* ast_new_func_dec_node(enum type_spec type, struct sym_node* id, struct params_node* params, struct cmp_stmt_node* stmt)
+struct func_dec_node* ast_new_func_dec_node(
+        enum type_spec type,
+        struct sym_node* id,
+        struct params_node* params,
+        struct cmp_stmt_node* stmt)
 {
     struct func_dec_node* node = malloc(sizeof(struct func_dec_node));
     node->nodeType = FUNC_DEC_NODE;
@@ -47,7 +69,10 @@ struct func_dec_node* ast_new_func_dec_node(enum type_spec type, struct sym_node
     return node;
 }
 
-struct params_node* ast_new_params_node(enum type_spec type, struct sym_node* id, struct params_node* next)
+struct params_node* ast_new_params_node(
+        enum type_spec type,
+        struct sym_node* id,
+        struct params_node* next)
 {
     struct params_node* node = malloc(sizeof(struct params_node));
     node->nodeType = PARAMS_NODE;
@@ -57,12 +82,16 @@ struct params_node* ast_new_params_node(enum type_spec type, struct sym_node* id
     return node;
 }
 
-struct params_node* ast_link_params_node(struct params_node* root, struct params_node*attachee) {
+struct params_node* ast_link_params_node(
+        struct params_node* root,
+        struct params_node*attachee) {
     root->next = attachee;
     return attachee;
 }
 
-struct cmp_stmt_node* ast_new_cmp_stmt_node(struct local_decs_node* local_dec, struct stmt_node* stmt)
+struct cmp_stmt_node* ast_new_cmp_stmt_node(
+        struct local_decs_node* local_dec,
+        struct stmt_node* stmt)
 {
     struct cmp_stmt_node* node = malloc(sizeof(struct cmp_stmt_node));
     node->nodeType = CMP_STMT_NODE;
@@ -71,7 +100,9 @@ struct cmp_stmt_node* ast_new_cmp_stmt_node(struct local_decs_node* local_dec, s
     return node;
 }
 
-struct local_decs_node* ast_new_local_decs_node(struct var_dec_node* var_dec, struct local_decs_node* next)
+struct local_decs_node* ast_new_local_decs_node(
+        struct var_dec_node* var_dec,
+        struct local_decs_node* next)
 {
     struct local_decs_node* node = malloc(sizeof(struct local_decs_node));
     node->nodeType = LOCAL_DECS_NODE;
@@ -80,7 +111,10 @@ struct local_decs_node* ast_new_local_decs_node(struct var_dec_node* var_dec, st
     return node;
 }
 
-struct stmt_node* ast_new_stmt_node(enum stmt_type type, struct stmt_node* next, union sub_stmt typed_stmt)
+struct stmt_node* ast_new_stmt_node(
+        enum stmt_type type, 
+        struct stmt_node* next,
+        union sub_stmt typed_stmt)
 {
     struct stmt_node* node = malloc(sizeof(struct stmt_node));
     node->nodeType = STMT_NODE;
@@ -90,14 +124,17 @@ struct stmt_node* ast_new_stmt_node(enum stmt_type type, struct stmt_node* next,
     return node;
 }
 
-struct stmt_node* ast_link_stmt_node(struct stmt_node* root, struct stmt_node* attachee) {
+struct stmt_node* ast_link_stmt_node(
+        struct stmt_node* root,
+        struct stmt_node* attachee) {
     if (root != NULL) {
         root->next = attachee;
     }
     return root;
 }
 
-struct expr_stmt_node* ast_new_expr_stmt_node(struct expr_node* expr)
+struct expr_stmt_node* ast_new_expr_stmt_node(
+        struct expr_node* expr)
 {
     struct expr_stmt_node* node = malloc(sizeof(struct expr_stmt_node));
     node->nodeType = EXPR_STMT_NODE;
@@ -105,7 +142,10 @@ struct expr_stmt_node* ast_new_expr_stmt_node(struct expr_node* expr)
     return node;
 }
 
-struct sel_stmt_node* ast_new_sel_stmt_node(struct expr_node* if_expr, struct stmt_node* if_stmt, struct stmt_node* else_stmt)
+struct sel_stmt_node* ast_new_sel_stmt_node(
+        struct expr_node* if_expr,
+        struct stmt_node* if_stmt,
+        struct stmt_node* else_stmt)
 {
     struct sel_stmt_node* node = malloc(sizeof(struct sel_stmt_node));
     node->nodeType = SEL_STMT_NODE;
@@ -115,7 +155,9 @@ struct sel_stmt_node* ast_new_sel_stmt_node(struct expr_node* if_expr, struct st
     return node;
 }
 
-struct iter_stmt_node* ast_new_iter_stmt_node(struct expr_node* while_expr, struct stmt_node* while_stmt)
+struct iter_stmt_node* ast_new_iter_stmt_node(
+        struct expr_node* while_expr,
+        struct stmt_node* while_stmt)
 {
     struct iter_stmt_node* node = malloc(sizeof(struct iter_stmt_node));
     node->nodeType = ITER_STMT_NODE;
@@ -124,7 +166,8 @@ struct iter_stmt_node* ast_new_iter_stmt_node(struct expr_node* while_expr, stru
     return node;
 }
 
-struct ret_stmt_node* ast_new_ret_stmt_node(struct expr_node* ret_expr)
+struct ret_stmt_node* ast_new_ret_stmt_node(
+        struct expr_node* ret_expr)
 {
     struct ret_stmt_node* node = malloc(sizeof(struct ret_stmt_node));
     node->nodeType = RET_STMT_NODE;
@@ -132,7 +175,10 @@ struct ret_stmt_node* ast_new_ret_stmt_node(struct expr_node* ret_expr)
     return node;
 }
 
-struct expr_node* ast_new_expr_node(struct var_node* var, struct expr_node* expr, struct smp_expr_node* smp_expr)
+struct expr_node* ast_new_expr_node(
+        struct var_node* var,
+        struct expr_node* expr,
+        struct smp_expr_node* smp_expr)
 {
     struct expr_node* node = malloc(sizeof(struct expr_node));
     node->nodeType = EXPR_NODE;
@@ -142,7 +188,9 @@ struct expr_node* ast_new_expr_node(struct var_node* var, struct expr_node* expr
     return node;
 }
 
-struct var_node* ast_new_var_node(struct sym_node* id, struct expr_node* array_expr)
+struct var_node* ast_new_var_node(
+        struct sym_node* id,
+        struct expr_node* array_expr)
 {
     struct var_node* node = malloc(sizeof(struct var_node));
     node->nodeType = VAR_NODE;
@@ -151,7 +199,10 @@ struct var_node* ast_new_var_node(struct sym_node* id, struct expr_node* array_e
     return node;
 }
 
-struct smp_expr_node* ast_new_smp_expr_node(enum relop op, struct add_expr_node* left, struct add_expr_node* right)
+struct smp_expr_node* ast_new_smp_expr_node(
+        enum relop op,
+        struct add_expr_node* left,
+        struct add_expr_node* right)
 {
     struct smp_expr_node* node = malloc(sizeof(struct smp_expr_node));
     node->nodeType = SMP_EXPR_NODE;
@@ -161,7 +212,10 @@ struct smp_expr_node* ast_new_smp_expr_node(enum relop op, struct add_expr_node*
     return node;
 }
 
-struct add_expr_node* ast_new_add_expr_node(enum addop op, struct add_expr_node* expr, struct term_node* term)
+struct add_expr_node* ast_new_add_expr_node(
+        enum addop op,
+        struct add_expr_node* expr,
+        struct term_node* term)
 {
     struct add_expr_node* node = malloc(sizeof(struct add_expr_node));
     node->nodeType = ADD_EXPR_NODE;
@@ -171,7 +225,10 @@ struct add_expr_node* ast_new_add_expr_node(enum addop op, struct add_expr_node*
     return node;
 }
 
-struct term_node* ast_new_term_node(enum mulop op, struct term_node* term, struct factor_node* factor)
+struct term_node* ast_new_term_node(
+        enum mulop op,
+        struct term_node* term,
+        struct factor_node* factor)
 {
     struct term_node* node = malloc(sizeof(struct term_node));
     node->nodeType = TERM_NODE;
@@ -181,7 +238,9 @@ struct term_node* ast_new_term_node(enum mulop op, struct term_node* term, struc
     return node;
 }
 
-struct factor_node* ast_new_factor_node(enum fact_type factor_type, union fact_union factor)
+struct factor_node* ast_new_factor_node(
+        enum fact_type factor_type,
+        union fact_union factor)
 {
     struct factor_node* node = malloc(sizeof(struct factor_node));
     node->nodeType = FACT_NODE;
@@ -190,7 +249,9 @@ struct factor_node* ast_new_factor_node(enum fact_type factor_type, union fact_u
     return node;
 }
 
-struct call_node* ast_new_call_node(struct sym_node* id, struct args_node* args)
+struct call_node* ast_new_call_node(
+        struct sym_node* id,
+        struct args_node* args)
 {
     struct call_node* node = malloc(sizeof(struct call_node));
     node->nodeType = CALL_NODE;
@@ -199,7 +260,9 @@ struct call_node* ast_new_call_node(struct sym_node* id, struct args_node* args)
     return node;
 }
 
-struct args_node* ast_new_args_node(struct expr_node* arg, struct args_node* nextArg)
+struct args_node* ast_new_args_node(
+        struct expr_node* arg,
+        struct args_node* nextArg)
 {
     struct args_node* node = malloc(sizeof(struct args_node));
     node->nodeType = ARGS_NODE;
@@ -208,13 +271,17 @@ struct args_node* ast_new_args_node(struct expr_node* arg, struct args_node* nex
     return node;
 }
 
-struct args_node* ast_link_args_node(struct args_node* root, struct args_node* attachee)
+struct args_node* ast_link_args_node(
+        struct args_node* root,
+        struct args_node* attachee)
 {
     root->nextArg = attachee;
     return attachee;
 }
 
-struct stmt_node* reverse_stmt_list(struct stmt_node* root) {
+struct stmt_node* reverse_stmt_list(
+        struct stmt_node* root)
+{
     struct stmt_node* curr = root;
     struct stmt_node* prev = NULL;
     struct stmt_node* next = NULL;
@@ -228,7 +295,9 @@ struct stmt_node* reverse_stmt_list(struct stmt_node* root) {
     return prev;
 }
 
-struct local_decs_node* reverse_local_dec_list(struct local_decs_node* root) {
+struct local_decs_node* reverse_local_dec_list(
+        struct local_decs_node* root)
+{
     struct local_decs_node* curr = root;
     struct local_decs_node* prev = NULL;
     struct local_decs_node* next = NULL;
@@ -242,13 +311,14 @@ struct local_decs_node* reverse_local_dec_list(struct local_decs_node* root) {
     return prev; // return the new head
 }
 
-void print_indent(int indent, FILE* outFile)
-{
+// Helper function to control indenting
+void print_indent(int indent, FILE* outFile) {
     int i = 0;
     while (i++ < indent*2)
-       fprintf(outFile," ");
+        fprintf(outFile," ");
 }
 
+// Semi-pretty printing function for AST
 void print_ast_tree(struct ast_node* root, FILE* outFile) {
     if (root == NULL) return;
     static int indent = 0; // controlling how much indent there is
@@ -264,7 +334,7 @@ void print_ast_tree(struct ast_node* root, FILE* outFile) {
         case SMP_EXPR_NODE:
         case FACT_NODE:
         case TERM_NODE:
-
+        case CALL_NODE:
             break;
         default:
             print_indent(indent,outFile);
@@ -293,7 +363,10 @@ void print_ast_tree(struct ast_node* root, FILE* outFile) {
             {
                 struct var_dec_node* r = (struct var_dec_node*)root;
                 char* t = r->type == INT ? "int" : "void";
-                fprintf(outFile,"[var-declaration [%s] [%s]]\n",t,r->id->symbol);
+                fprintf(outFile,"[var-declaration [%s] [%s]",t,r->id->symbol);
+                if (r->arraySize > 0)
+                    fprintf(outFile," [%d]",r->arraySize);
+                fprintf(outFile,"]\n");
                 break;
             }
 
@@ -331,7 +404,7 @@ void print_ast_tree(struct ast_node* root, FILE* outFile) {
                 char* t = r->type == INT ? "int" : "void";
                 fprintf(outFile,"[param [%s] [%s]",t,r->id->symbol);
                 if (r->id->type == ARRAY)
-                    fprintf(outFile," \\[\\]");
+                    fprintf(outFile," [\\[\\]]");
                 fprintf(outFile,"]");
                 if (r->next != NULL) {
                     fprintf(outFile,"\n");
@@ -467,8 +540,6 @@ void print_ast_tree(struct ast_node* root, FILE* outFile) {
                     print_ast_tree((struct ast_node*)r->smp_expr,outFile);
                 }
                 if (r->var != NULL) {
-                    if (r->expr != NULL)
-                        print_indent(indent,outFile);
                     fprintf(outFile,"]\n");
                 }
                 break;
@@ -595,6 +666,8 @@ void print_ast_tree(struct ast_node* root, FILE* outFile) {
         case CALL_NODE:
             {
                 struct call_node* r = (struct call_node*)root;
+                fprintf(outFile,"\n");
+                print_indent(indent,outFile);
                 fprintf(outFile,"[call\n");
                 indent++;
                 print_indent(indent,outFile);
@@ -602,8 +675,9 @@ void print_ast_tree(struct ast_node* root, FILE* outFile) {
                 print_indent(indent,outFile);
                 fprintf(outFile,"[args ");
                 print_ast_tree((struct ast_node*)r->args,outFile);
+                fprintf(outFile,"]");
                 indent--;
-                fprintf(outFile,"]\n");
+                fprintf(outFile,"]");
                 break;
             }
 
@@ -620,6 +694,7 @@ void print_ast_tree(struct ast_node* root, FILE* outFile) {
     }
 }
 
+//Cleanup function for the AST
 void free_ast_tree(struct ast_node * root) {
     if (root == NULL) return;
     switch(root->nodeType) {
@@ -822,4 +897,210 @@ void free_ast_tree(struct ast_node * root) {
             exit(1);
     }
     free(root);
+}
+
+// Semantic checking for the AST,
+// general flow is check node->check children->finish
+void analyze_ast_tree(struct ast_node * root) {
+    if (root == NULL) return;
+    static enum error_type err = ALL_GOOD; // nothing to worry about yet
+    switch(root->nodeType) {
+        case PROGRAM_NODE:
+            {
+                struct program_node* r = (struct program_node*) root;
+                analyze_ast_tree((struct ast_node*)r->decList);
+                break;
+            }
+
+        case DEC_LIST_NODE:
+            {
+                struct dec_list_node* r = (struct dec_list_node*)root;
+                analyze_ast_tree((struct ast_node*)r->var);
+                analyze_ast_tree((struct ast_node*)r->func);
+                analyze_ast_tree((struct ast_node*)r->nextDeclaration);
+                break;
+            }
+
+        case VAR_DEC_NODE:
+            {
+                struct var_dec_node* r = (struct var_dec_node*)root;
+                r->id = NULL; // don't clean up here, clear symbol table after
+                break;
+            }
+
+        case FUNC_DEC_NODE:
+            {
+                struct func_dec_node* r = (struct func_dec_node*)root;
+                r->id = NULL; // don't cleanup here, clear sym table after
+                analyze_ast_tree((struct ast_node*)r->params);
+                analyze_ast_tree((struct ast_node*)r->stmt);
+                break;
+            }
+
+        case PARAMS_NODE:
+            {
+                struct params_node* r = (struct params_node*)root;
+                analyze_ast_tree((struct ast_node*)r->next);
+                r->id = NULL;
+                break;
+            }
+
+        case CMP_STMT_NODE:
+            {
+                struct cmp_stmt_node* r = (struct cmp_stmt_node*)root;
+                analyze_ast_tree((struct ast_node*)r->local_dec);
+                analyze_ast_tree((struct ast_node*)r->stmt);
+                break;
+            }
+
+        case LOCAL_DECS_NODE:
+            {
+                struct local_decs_node* r = (struct local_decs_node*)root;
+                analyze_ast_tree((struct ast_node*)r->var_dec);
+                analyze_ast_tree((struct ast_node*)r->next);
+                break;
+            }
+
+        case STMT_NODE:
+            {
+                struct stmt_node* r = (struct stmt_node*)root;
+                analyze_ast_tree((struct ast_node*)r->next);
+                switch (r->expr_type) {
+                    case EXPRST:
+                        analyze_ast_tree((struct ast_node*)r->typed_stmt.expr_stmt);
+                        break;
+                    case CMP:
+                        analyze_ast_tree((struct ast_node*)r->typed_stmt.cmp_stmt);
+                        break;
+                    case SEL:
+                        analyze_ast_tree((struct ast_node*)r->typed_stmt.sel_stmt);
+                        break;
+                    case ITER:
+                        analyze_ast_tree((struct ast_node*)r->typed_stmt.iter_stmt);
+                        break;
+                    case RET:
+                        analyze_ast_tree((struct ast_node*)r->typed_stmt.ret_stmt);
+                        break;
+                    default:
+                        fprintf(stderr,"error freeing ast tree\n");
+                        exit(1);
+                }
+                break;
+            }
+
+        case EXPR_STMT_NODE:
+            {
+                struct expr_stmt_node* r = (struct expr_stmt_node*)root;
+                if (r->expr != NULL) {
+                    analyze_ast_tree((struct ast_node*)r->expr);
+                    r->expr = NULL;
+                }
+                break;
+            }
+
+        case SEL_STMT_NODE:
+            {
+                struct sel_stmt_node* r = (struct sel_stmt_node*)root;
+                analyze_ast_tree((struct ast_node*)r->if_expr);
+                analyze_ast_tree((struct ast_node*)r->if_stmt);
+                analyze_ast_tree((struct ast_node*)r->else_stmt);
+                break;
+            }
+
+        case ITER_STMT_NODE:
+            {
+                struct iter_stmt_node* r = (struct iter_stmt_node*)root;
+                analyze_ast_tree((struct ast_node*)r->while_expr);
+                analyze_ast_tree((struct ast_node*)r->while_stmt);
+                break;
+            }
+
+        case RET_STMT_NODE:
+            {
+                struct ret_stmt_node* r = (struct ret_stmt_node*)root;
+                analyze_ast_tree((struct ast_node*)r->ret_expr);
+                break;
+            }
+
+        case EXPR_NODE:
+            {
+                struct expr_node* r = (struct expr_node*)root;
+                analyze_ast_tree((struct ast_node*)r->var);
+                analyze_ast_tree((struct ast_node*)r->expr);
+                analyze_ast_tree((struct ast_node*)r->smp_expr);
+                break;
+            }
+
+        case VAR_NODE:
+            {
+                struct var_node* r = (struct var_node*)root;
+                r->id = NULL;
+                analyze_ast_tree((struct ast_node*)r->array_expr);
+                break;
+            }
+
+        case SMP_EXPR_NODE:
+            {
+                struct smp_expr_node* r = (struct smp_expr_node*)root;
+                analyze_ast_tree((struct ast_node*)r->left);
+                analyze_ast_tree((struct ast_node*)r->right);
+                break;
+            }
+
+        case ADD_EXPR_NODE:
+            {
+                struct add_expr_node* r = (struct add_expr_node*)root;
+                analyze_ast_tree((struct ast_node*)r->expr);
+                analyze_ast_tree((struct ast_node*)r->term);
+                break;
+            }
+
+        case TERM_NODE:
+            {
+                struct term_node* r = (struct term_node*)root;
+                analyze_ast_tree((struct ast_node*)r->term);
+                analyze_ast_tree((struct ast_node*)r->factor);
+                break;
+            }
+
+        case FACT_NODE:
+            {
+                struct factor_node* r = (struct factor_node*)root;
+                switch (r->factor_type) {
+                    case EXPR:
+                        analyze_ast_tree((struct ast_node*)r->factor.expr);
+                        break;
+                    case VAR:
+                        analyze_ast_tree((struct ast_node*)r->factor.var);
+                        break;
+                    case CALL:
+                        analyze_ast_tree((struct ast_node*)r->factor.call);
+                        break;
+                    case NUMFACT: // nothing to do on a number
+                        break;
+                    default:
+                        fprintf(stderr,"error: malformed AST, improper factor_type in fact node\n");
+                        exit(1);
+                }
+                break;
+            }
+        case CALL_NODE:
+            {
+                struct call_node* r = (struct call_node*)root;
+                r->id = NULL; // lose the link to the id
+                analyze_ast_tree((struct ast_node*)r->args);
+                break;
+            }
+
+        case ARGS_NODE:
+            {
+                struct args_node* r = (struct args_node*)root;
+                analyze_ast_tree((struct ast_node*)r->arg);
+                analyze_ast_tree((struct ast_node*)r->nextArg);
+                break;
+            }
+        default:
+            fprintf(stderr,"error freeing ast, improper nodeType\n");
+            exit(1);
+    }
 }
