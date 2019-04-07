@@ -1,28 +1,25 @@
 %{
+// Written by Will Sumner
+// CS 1622: Intro to Compilers
+// University of Pittsburgh, Spring 2019
+// C- minus yacc grammar with AST generation
+
 #include <stdio.h> // output funcs
 #include <stdlib.h>
 #include <string.h> // convenience funcs
+#include "yacc_header.h" // header for yyparse, yylineno...
 #include "ast.h" // ast nodes
 #include "symtable.h" // for finding funcs/vars
-#include "parser.tab.h"
+#include "parser.tab.h" // symbols/defines for tokens
+#include "errors.h" // error functions/definitions
 #define YYDEBUG 1 // setting for debug
 
-extern int yylex(void);
-extern int yyparse(void);
-extern int yylineno;
-extern FILE* yyin;
-extern FILE* yyout;
-
-void yyerror(const char* s);
-int yywrap();
 
 struct program_node* ast = NULL; // main pointer to the AST
 struct sym_table* table = NULL; // setup the symbol table
 
 struct dec_list_node* decListStart = NULL;
 struct params_node* paramListStart = NULL;
-struct stmt_node* statementListStart = NULL;
-struct dec_list_node* localDecPrev = NULL;
 struct args_node* argsListStart = NULL;
 
 %}
@@ -69,8 +66,8 @@ struct args_node* argsListStart = NULL;
 %token <type> VOID_TOK INT_TOK
 
 %type <decList> decList declaration
-%type <varDec> varDeclaration
 %type <type> typeSpec
+%type <varDec> varDeclaration
 %type <funcDec> funcDeclaration
 %type <params> params paramList param
 %type <cmpStmt> compStatement
@@ -100,8 +97,8 @@ struct args_node* argsListStart = NULL;
 
 %%
 
-program:                        {ast = ast_new_program_node(NULL); YYACCEPT; /*no program*/}
-       | decList                {ast = ast_new_program_node(decListStart); YYACCEPT;}
+program:                        {ast = NULL; /*no program*/}
+       | decList                {ast = ast_new_program_node(decListStart);}
 ;
 
 decList: decList declaration    {$$ = ast_link_dec_list_node($1,$2);}
@@ -112,7 +109,7 @@ declaration: varDeclaration     {$$ = ast_new_dec_list_node($1,NULL,NULL);}
            | funcDeclaration    {$$ = ast_new_dec_list_node(NULL,$1,NULL);}
 ;
 
-varDeclaration: typeSpec ID  SEMICOLON                {$$ = ast_new_var_dec_node($1,table_add(table,$2,VARIABLE),0);}
+varDeclaration: typeSpec ID  SEMICOLON                {$$ = ast_new_var_dec_node($1,table_add(table,$2,VARIABLE),-1);}
               | typeSpec ID LBRAC NUM RBRAC SEMICOLON {$$ = ast_new_var_dec_node($1,table_add(table,$2,ARRAY),$4);}
 ;
 
@@ -227,13 +224,9 @@ argList: argList COMMA expr {$$ = ast_link_args_node($1,ast_new_args_node($3,NUL
 
 int yywrap() { return 1; } // compiles only one file at a time, reports that processing is done
 
-void yyerror(const char* s) { // what to do on an error
-    fprintf(stderr,"Parse error: %s on line: %d\n",s,yylineno);
-    exit(1);
-}
-
 int main(int argc,char **argv)
 {
+
     if (argc == 3) { // using ./lexerProg infile outfile
         yyin = fopen(argv[1],"r");
         yyout = fopen(argv[2],"w");
@@ -261,7 +254,9 @@ int main(int argc,char **argv)
     yydebug = 1; // set debug flag
     #endif
 
-    yyparse(); // run that parser baby
+    yyparse(); // run that parser, baby.
+
+    analyze_ast_tree(ast);
 
     #ifdef DEBUG
     fprintf(yyout,"\n\n----- PRINTING AST -----\n\n");
