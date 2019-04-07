@@ -1,2 +1,2 @@
 #!/bin/bash
-./lexprog.out $1 $2
+./yaccprog.out $1 $2
