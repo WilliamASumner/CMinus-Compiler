@@ -2,7 +2,6 @@
 #ifndef SYMTABLE_H
 #define SYMTABLE_H
 #define TABLE_SIZE 10 // 100000 symbols should be ok for our compiler proj
-#include "ast.h"
 
 enum idType {FUNCTION,VARIABLE,ARRAY};
 

@@ -1,3 +1,9 @@
+// Symtable for variable names
+// Written by Will Sumner
+// CS 1622: Intro to Compilers
+// University of Pittsburgh, Spring 2019
+// This file contains functions for manipulating the symbol table,
+// which is a separate chaining hashtable with the djb2 hash from Dan Bernstein
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -12,7 +18,7 @@ struct sym_table* newTable() {
     return table;
 }
 
-int hashSymbol(char *symbol) {
+int hashSymbol(char *symbol) { // djb2 algorithm
     unsigned long hash = 5381;
     int c;
     while ((c = *(symbol++)))
