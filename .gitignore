@@ -12,3 +12,4 @@ output
 *.tab.*
 *.dSYM/
 *.swp
+*.tar
