@@ -7,7 +7,7 @@
 
 #ifndef AST_H
 #define AST_H
-enum type_spec {INT,VOID};
+#include "id.h"
 enum fact_type {EXPR,VAR,CALL,NUMFACT};
 enum relop {UNARYREL,LT,GT,GTE,LTE,EQ,NEQ};
 enum mulop {UNARYMULT,MULT,DIV};
@@ -37,7 +37,7 @@ enum ast_node_type {
     FACT_NODE,
     CALL_NODE,
     ARGS_NODE,
-    UNKNOWN_NODE = 0
+    UNKNOWN_NODE
 };
 
 
@@ -55,24 +55,27 @@ struct dec_list_node {
 
 struct var_dec_node {
     enum ast_node_type nodeType;
-    enum type_spec type; // INT or VOID
-    struct sym_node* id;
+    enum id_type idType; // INT or VOID
+    enum type_spec valType; // INT or VOID
+    char* id;
     int arraySize;
 };
 
 struct func_dec_node {
     enum ast_node_type nodeType;
-    enum type_spec type;
-    struct sym_node* id;
+    enum id_type idType; // INT or VOID
+    enum type_spec valType; // INT or VOID
+    char* id;
     struct params_node* params;
     struct cmp_stmt_node* stmt;
 };
 
 struct params_node { // LL of parameters with ID's and types
     enum ast_node_type nodeType;
-    enum type_spec type;
+    enum id_type idType;
+    enum type_spec valType;
     struct params_node* next;
-    struct sym_node* id;
+    char* id;
 };
 
 struct cmp_stmt_node {
@@ -87,7 +90,7 @@ struct local_decs_node {
     struct local_decs_node* next;
 };
 
-struct stmt_node {
+struct stmt_node { // general stmt node
     enum ast_node_type nodeType;
     enum stmt_type {EXPRST,CMP,SEL,ITER,RET,UNARYSTMT=0} expr_type;
     struct stmt_node* next;
@@ -132,7 +135,9 @@ struct expr_node {
 
 struct var_node {
     enum ast_node_type nodeType;
-    struct sym_node* id;
+    enum id_type idType;
+    enum type_spec valType;
+    char* id;
     struct expr_node* array_expr;
 };
 
@@ -170,7 +175,7 @@ struct factor_node {
 
 struct call_node {
     enum ast_node_type nodeType;
-    struct sym_node* id;
+    char* id;
     struct args_node* args;
 };
 
@@ -197,19 +202,23 @@ struct dec_list_node* ast_link_dec_list_node(
         struct dec_list_node* attachee);
 
 struct var_dec_node* ast_new_var_dec_node(
-        enum type_spec type,
-        struct sym_node* id,
+        enum id_type idType,
+        enum type_spec valType,
+        char* id,
         int arraySize);
 
 struct func_dec_node* ast_new_func_dec_node(
-        enum type_spec type,
-        struct sym_node* id,
+        enum id_type idType,
+        enum type_spec valType,
+        char* id,
         struct params_node* params,
         struct cmp_stmt_node* stmt);
 
 
-struct params_node* ast_new_params_node(enum type_spec type,
-        struct sym_node* id,
+struct params_node* ast_new_params_node(
+        enum id_type idType,
+        enum type_spec valType,
+        char* id,
         struct params_node* next);
 
 struct params_node* ast_link_params_node(
@@ -218,11 +227,11 @@ struct params_node* ast_link_params_node(
 
 struct cmp_stmt_node* ast_new_cmp_stmt_node(
         struct local_decs_node* local_dec,
-struct stmt_node* stmt);
+        struct stmt_node* stmt);
 
 struct local_decs_node* ast_new_local_decs_node(
         struct var_dec_node* var_dec,
-struct local_decs_node* next);
+        struct local_decs_node* next);
 
 
 struct stmt_node* ast_new_stmt_node(
@@ -255,7 +264,9 @@ struct expr_node* ast_new_expr_node(
         struct smp_expr_node* smp_expr);
 
 struct var_node* ast_new_var_node(
-        struct sym_node* id,
+        enum id_type idType,
+        enum type_spec valType,
+        char* id,
         struct expr_node* array_expr);
 struct smp_expr_node* ast_new_smp_expr_node(
         enum relop op,
@@ -277,7 +288,7 @@ struct factor_node* ast_new_factor_node(
         union fact_union factor);
 
 struct call_node* ast_new_call_node(
-        struct sym_node* id,
+        char* id,
         struct args_node* args);
 
 struct args_node* ast_new_args_node(
@@ -295,6 +306,8 @@ struct local_decs_node* reverse_local_dec_list(struct local_decs_node* root);
 void print_ast_tree(struct ast_node* root, FILE* outFile);
 
 void free_ast_tree(struct ast_node* root); // freeing function
+
+void ast_add_io(struct ast_node* ast);
 
 void analyze_ast_tree(struct ast_node*root);
 
