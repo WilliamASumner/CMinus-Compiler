@@ -15,7 +15,7 @@
 #define YYDEBUG 1 // setting for debug
 
 
-struct program_node* ast = NULL; // main pointer to the AST
+struct ast_node* ast = NULL; // main pointer to the AST
 struct sym_table* table = NULL; // setup the symbol table
 
 struct dec_list_node* decListStart = NULL;
@@ -98,7 +98,7 @@ struct args_node* argsListStart = NULL;
 %%
 
 program:                        {ast = NULL; /*no program*/}
-       | decList                {ast = ast_new_program_node(decListStart);}
+       | decList                {ast = (struct ast_node*)ast_new_program_node(decListStart);}
 ;
 
 decList: decList declaration    {$$ = ast_link_dec_list_node($1,$2);}
@@ -109,15 +109,18 @@ declaration: varDeclaration     {$$ = ast_new_dec_list_node($1,NULL,NULL);}
            | funcDeclaration    {$$ = ast_new_dec_list_node(NULL,$1,NULL);}
 ;
 
-varDeclaration: typeSpec ID  SEMICOLON                {$$ = ast_new_var_dec_node($1,table_add(table,$2,VARIABLE),-1);}
-              | typeSpec ID LBRAC NUM RBRAC SEMICOLON {$$ = ast_new_var_dec_node($1,table_add(table,$2,ARRAY),$4);}
+varDeclaration: typeSpec ID  SEMICOLON  {$$ =
+              ast_new_var_dec_node(VARIABLE,$1,$2,-1);}
+              | typeSpec ID LBRAC NUM RBRAC SEMICOLON {$$ =
+              ast_new_var_dec_node(ARRAY,$1,$2,$4);}
 ;
 
 typeSpec: INT_TOK               {$$ = $1;}
         | VOID_TOK              {$$ = $1;}
 ;
 
-funcDeclaration: typeSpec ID LPAREN params RPAREN compStatement {$$ = ast_new_func_dec_node($1,table_add(table,$2,FUNCTION),$4,$6);}
+funcDeclaration: typeSpec ID LPAREN params RPAREN compStatement {$$ =
+               ast_new_func_dec_node(FUNCTION,$1,$2,$4,$6);}
 ;
 
 params: paramList  {$$ = paramListStart;}
@@ -128,8 +131,8 @@ paramList: paramList COMMA param {$$ = ast_link_params_node($1,$3);}
          | param                 {$$ = $1; paramListStart = $1;}
 ;
 
-param: typeSpec ID {$$ = ast_new_params_node($1,table_add(table,$2,VARIABLE),NULL);}
-     | typeSpec ID LBRAC RBRAC {$$ = ast_new_params_node($1,table_add(table,$2,ARRAY),NULL);}
+param: typeSpec ID               {$$ = ast_new_params_node(VARIABLE,$1,$2,NULL);}
+     | typeSpec ID LBRAC RBRAC   {$$ = ast_new_params_node(ARRAY,$1,$2,NULL);}
 ;
 
 compStatement: LCURL localDecs statementList RCURL {$$ = ast_new_cmp_stmt_node(reverse_local_dec_list($2),reverse_stmt_list($3));}
@@ -166,12 +169,12 @@ retStatement: RETURN SEMICOLON      {$$ = ast_new_ret_stmt_node(NULL);}
             | RETURN expr SEMICOLON {$$ = ast_new_ret_stmt_node($2);}
 ;
 
-expr: var EQUALS expr       {$$ = ast_new_expr_node($1,$3,NULL);}
-    | sexpr                 {$$ = ast_new_expr_node(NULL,NULL,$1);}
+expr: var EQUALS expr        {$$ = ast_new_expr_node($1,$3,NULL);}
+    | sexpr                  {$$ = ast_new_expr_node(NULL,NULL,$1);}
 ;
 
-var: ID                     {$$ = ast_new_var_node(table_add(table,$1,VARIABLE),NULL); }
-   | ID LBRAC expr RBRAC    {$$ = ast_new_var_node(table_add(table,$1,ARRAY),$3);}
+var: ID                      {$$ = ast_new_var_node(VARIABLE,INT,$1,NULL); }
+   | ID LBRAC expr RBRAC     {$$ = ast_new_var_node(ARRAY,INT,$1,$3);}
 ;
 
 sexpr: addexpr relop addexpr {$$ = ast_new_smp_expr_node($2,$1,$3);}
@@ -208,7 +211,7 @@ fact: LPAREN expr RPAREN    {$$ = ast_new_factor_node(EXPR,(union fact_union)$2)
     | NUM                   {$$ = ast_new_factor_node(NUMFACT,(union fact_union)$1);}
 ;
 
-call: ID LPAREN args RPAREN {$$ = ast_new_call_node(table_add(table,$1,FUNCTION),$3);}
+call: ID LPAREN args RPAREN {$$ = ast_new_call_node($1,$3);}
 ;
 
 args:                       {$$ = NULL;}
@@ -226,7 +229,6 @@ int yywrap() { return 1; } // compiles only one file at a time, reports that pro
 
 int main(int argc,char **argv)
 {
-
     if (argc == 3) { // using ./lexerProg infile outfile
         yyin = fopen(argv[1],"r");
         yyout = fopen(argv[2],"w");
@@ -249,15 +251,19 @@ int main(int argc,char **argv)
         return -1;
     }
 
-    table = newTable(); // initialize the table
+    table = new_table(); // initialize the table
     #ifdef DEBUG
     yydebug = 1; // set debug flag
     #endif
 
     yyparse(); // run that parser, baby.
 
+    // add in the input and output functions, throws errors on redefinition
+    ast_add_io(ast);
+
     analyze_ast_tree(ast);
 
+    
     #ifdef DEBUG
     fprintf(yyout,"\n\n----- PRINTING AST -----\n\n");
     print_ast_tree((struct ast_node*)ast,yyout);
