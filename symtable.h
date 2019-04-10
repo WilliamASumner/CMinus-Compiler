@@ -1,15 +1,17 @@
 // Custom Symbol table using a hash table and separate chaining
 #ifndef SYMTABLE_H
 #define SYMTABLE_H
-#define TABLE_SIZE 10 // 100000 symbols should be ok for our compiler proj
-
-enum idType {FUNCTION,VARIABLE,ARRAY};
+#define TABLE_SIZE 10000 // 100000 symbols should be ok for our compiler proj
+#include "id.h"
+#include "ast.h"
 
 struct sym_node {
+    enum id_type idType; // whether it is a function, variable or array
+    enum type_spec valType; // whether it is a void or int
     char *symbol; // symbol this node holds
     struct sym_node* nextSymbol; // for getting to next symbol
     struct sym_node* prevScope; // for accessing old contexts
-    enum idType type; // whether it is a function, variable or other
+    struct params_node* params; 
     int scope;
 };
 
@@ -18,24 +20,29 @@ struct sym_table {
     int currScope;
 };
 
-struct sym_table*  newTable(void);
-
 int hashSymbol(char *symbol);
+
+struct sym_table* new_table(void);
 
 struct sym_node* table_find(struct sym_table *table, char *someSymbol);
 
-struct sym_node* table_add(struct sym_table *table, char *someSymbol, enum idType type);
+struct sym_node* table_add(
+        struct sym_table *table,
+        char *symbol,
+        enum id_type idType,
+        enum type_spec valType,
+        struct params_node* params);
 
-int table_inScope(struct sym_table *table, char *someSymbol);
+int table_in_scope(struct sym_table *table, char *someSymbol);
 
-void table_enterScope(struct sym_table* table);
+void table_enter_scope(struct sym_table* table);
 
-void table_exitScope(struct sym_table* table);
+void table_exit_scope(struct sym_table* table);
 
 void free_table(struct sym_table* table);
 
-#ifdef DEBUG
-void printNode(struct sym_node* n);
-#endif
+void print_table(struct sym_table* t);
+
+void print_node(struct sym_node* n);
 
 #endif
