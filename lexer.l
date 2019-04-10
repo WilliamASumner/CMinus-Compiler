@@ -1,12 +1,21 @@
 %{
 #include <stdio.h>
 #include "ast.h"
+#include "errors.h"
 #include "parser.tab.h" // grammer token list
+#define INT_MAX 2147483647
+#define INT_MIN -2147483648
 extern YYSTYPE yylval;
 void yyerror(const char* msg);
 int lastline = 1; // val for returning comment error
 
 // the %x COMMT sets it as a state once a OCOMM is seen
+int to_int(char* str) {
+    long val = atol(str);
+    if (val <= INT_MIN || val >= INT_MAX)
+        throw_lexical_error(INTEGER_OVERFLOW,NULL);
+    return (int)val;
+}
 %}
 
 %x COMMT
@@ -67,8 +76,8 @@ ERROR .
 "while"           {return WHILE;}
 
 
-{INT_TOK}         {yylval.integer = atoi(yytext); return NUM;}
+{INT_TOK}         {yylval.integer = to_int(yytext); return NUM;}
 {IDSTR}           {yylval.string = strdup(yytext); return ID;}
 {WHITESPACE}      {/*clear whitespace, do nothing*/}
-{ERROR}           {fprintf(stderr, "error: unrecognized token %s\n",yytext);yyerror("");}
+{ERROR}           {throw_lexical_error(UNRECOGNIZED_TOKEN,yytext);}
 %%
