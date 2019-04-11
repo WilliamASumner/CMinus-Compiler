@@ -5,6 +5,11 @@
 #include "errors.h"
 #include "yacc_header.h"
 
+
+static const char* RED = "\033[1;31m";
+static const char* GRN = "\033[0;32m";
+static const char* RST = "\033[0m";
+
 void yyerror(const char* s) { // what to do on an error in parser
 #ifdef DEBUG
     fprintf(stderr,"Parse error: %s on line: %d\n",s,yylineno);
@@ -15,7 +20,7 @@ void yyerror(const char* s) { // what to do on an error in parser
 
 void print_lexical_error(enum lexical_error_type e, char* s)
 {
-    fprintf(stderr,"lexical error: ");
+    fprintf(stderr,"%slexical error: ",RED);
     switch (e) {
         case INTEGER_OVERFLOW:
             fprintf(stderr,"Too large integer input");
@@ -27,11 +32,11 @@ void print_lexical_error(enum lexical_error_type e, char* s)
             fprintf(stderr,"undefined ast error type encountered\n");
             return;
     }
-    printf("\n");
+    printf("%s\n",RST);
 }
 
 void print_semantic_error(enum semantic_error_type e,struct ast_node* node) {
-    fprintf(stderr,"semantic error: ");
+    fprintf(stderr,"%ssemantic error: ",RED);
     switch (e) {
         case USE_BEFORE_DEC:
             fprintf(stderr,"Use of variable or function before declaration");
@@ -85,12 +90,12 @@ void print_semantic_error(enum semantic_error_type e,struct ast_node* node) {
             fprintf(stderr,"undefined semantic error type encountered\n");
             return;
     }
-    printf(" at node %p\n",node);
+    printf(" at node %p%s\n",node,RST);
 }
 
 void print_ast_error(enum ast_error_type e, struct ast_node* node)
 {
-    fprintf(stderr,"ast error: ");
+    fprintf(stderr,"%sast error: ",RED);
     switch (e) {
         case EMPTY_VAR_DEC:
             fprintf(stderr,"Empty variable declaration in AST");
@@ -129,7 +134,7 @@ void print_ast_error(enum ast_error_type e, struct ast_node* node)
             fprintf(stderr,"undefined ast error type encountered\n");
             return;
     }
-    printf(" at node %p\n",node);
+    printf(" at node %p %s\n",node,RST);
 }
 
 void throw_lexical_error(enum lexical_error_type err,char* s) {
@@ -149,16 +154,33 @@ void throw_semantic_error(enum semantic_error_type err,struct ast_node* node) {
 }
 
 void throw_ast_error(enum ast_error_type err, struct ast_node* node) {
+    cleanup(); // clean up table and ast
 #ifdef DEBUG
     print_ast_error(err,node); // show what error we got
 #endif
-    cleanup(); // clean up table and ast
+
     exit(1); // and exit
 }
 
 void cleanup() {
+#ifdef DEBUG
+    fprintf(stderr,"%sRunning cleanup...%s\n",GRN,RST);
+#endif
     free_ast_tree(ast); // free the ast
+#ifdef DEBUG
+    fprintf(stderr,"%sTree successfully freed%s\n",GRN,RST);
+#endif 
     free_table(table); // free the sym table
+#ifdef DEBUG
+    fprintf(stderr,"%sSymbol table successfully freed%s\n",GRN,RST);
+#endif 
     fclose(yyin); // close the files
+#ifdef DEBUG
+    fprintf(stderr,"%syyin successfully closed%s\n",GRN,RST);
+#endif 
     fclose(yyout);
+#ifdef DEBUG
+    fprintf(stderr,"%syyout successfully closed%s\n",GRN,RST);
+#endif 
+
 }
