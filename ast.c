@@ -895,7 +895,7 @@ void analyze_ast_tree(struct ast_node * root) {
     if (root == NULL) return;
     static char* currFunc = NULL;
     static int foundReturn = 0;
-    static int inFunction = 0;
+    static int didParams = 0;
     switch(root->nodeType) {
         case PROGRAM_NODE:
             { // just analyze decList, NULL returns empty prog
@@ -944,7 +944,7 @@ void analyze_ast_tree(struct ast_node * root) {
                     throw_semantic_error(REDECLARATION_OR_BAD_SCOPE,root);
                 currFunc = r->id;
                 foundReturn = 0;
-                inFunction = 1;
+                didParams = 1;
                 table_enter_scope(table);
                 analyze_ast_tree((struct ast_node*)r->params);
                 analyze_ast_tree((struct ast_node*)r->stmt);
@@ -973,12 +973,12 @@ void analyze_ast_tree(struct ast_node * root) {
         case CMP_STMT_NODE:
             {
                 struct cmp_stmt_node* r = (struct cmp_stmt_node*)root;
-                if (inFunction != 1)
+                if (didParams != 1)
                     table_enter_scope(table);
                 analyze_ast_tree((struct ast_node*)r->local_dec);
                 analyze_ast_tree((struct ast_node*)r->stmt);
-                if (inFunction == 1)
-                    inFunction = 0;
+                if (didParams == 1)
+                    didParams = 0;
                 else
                     table_exit_scope(table);
                 break;
