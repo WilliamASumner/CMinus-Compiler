@@ -5,6 +5,7 @@ wc -l Makefile \
     ast.{c,h}  \
     symtable.{c,h} \
     id.h \
-    errors.{c,h}
+    errors.{c,h} \
+    yacc_header.h
 
 
