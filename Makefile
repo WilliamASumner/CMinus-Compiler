@@ -6,13 +6,13 @@
 CC        := gcc
 MKDIR_P   := mkdir -p
 CFLAGS    := -Wall
-DFLAGS    := -g -DDEBUG
+DFLAGS    := -g -DDEBUG -O0
 LDFLAGS   := -ll -ly
 
 RELDIR    := release
 DEBDIR    := debugging
 
-FILES     := parser.tab lex.yy symtable errors ast
+FILES     := parser.tab lex.yy symtable errors ast codegen
 OBJFILES  := $(addprefix $(RELDIR)/, $(addsuffix .o,$(FILES)))
 DOBJFILES := $(addprefix $(DEBDIR)/, $(addsuffix .debug.o,$(FILES)))
 
@@ -39,6 +39,10 @@ $(DEBDIR):
 	${MKDIR_P} $(DEBDIR)
 
 
+###################################
+#########    RELEASE    ###########
+###################################
+
 $(RELDIR)/parser.tab.o: parser.tab.c parser.tab.h yacc_header.h
 	gcc -c parser.tab.c -o $@
 
@@ -54,6 +58,13 @@ $(RELDIR)/errors.o: errors.c errors.h yacc_header.h
 $(RELDIR)/ast.o: ast.c ast.h
 	gcc -c ast.c -o $@
 
+$(RELDIR)/codegen.o: codegen.c codegen.h
+	gcc -c codegen.c -o $@
+
+###################################
+#########     DEBUG     ###########
+###################################
+
 $(DEBDIR)/parser.tab.debug.o: parser.tab.c parser.tab.h yacc_header.h
 	gcc $(DFLAGS) -c parser.tab.c -o $@
 
@@ -68,6 +79,9 @@ $(DEBDIR)/errors.debug.o: errors.c errors.h yacc_header.h
 
 $(DEBDIR)/ast.debug.o: ast.c ast.h
 	gcc $(DFLAGS) -c ast.c -o $@
+
+$(DEBDIR)/codegen.debug.o: codegen.c codegen.h
+	gcc -c codegen.c -o $@
 
 
 #Create parser.tab.c and parser.tab.h
