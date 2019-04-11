@@ -82,3 +82,4 @@ clean:
 	-@rm -rf $(RELDIR)/ $(DEBDIR)/ 2>/dev/null || true
 	-@rm lex.yy.c *.lex 2>/dev/null || true # remove lex files
 	-@rm parser.{output,tab.{h,c}}  2>/dev/null || true # remove parser files
+	-@rm $(TARGET) $(DTARGET)  2>/dev/null || true # remove targets
