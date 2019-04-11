@@ -13,3 +13,5 @@ output
 *.dSYM/
 *.swp
 *.tar
+debugging/
+release/
