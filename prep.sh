@@ -6,4 +6,5 @@ tar -cvf parser.tar Makefile \
     symtable.* \
     errors.* \
     id.h \
-    yacc_header.h
+    yacc_header.h \
+    codegen.{c,h}
