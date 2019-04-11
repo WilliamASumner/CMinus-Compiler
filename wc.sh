@@ -2,7 +2,9 @@
 wc -l Makefile \
     run.sh compile.sh \
     parser.y lexer.l \
-    ast.*  \
-    symtable.*
+    ast.{c,h}  \
+    symtable.{c,h} \
+    id.h \
+    errors.{c,h}
 
 
