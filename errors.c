@@ -165,22 +165,19 @@ void throw_ast_error(enum ast_error_type err, struct ast_node* node) {
 void cleanup() {
 #ifdef DEBUG
     fprintf(stderr,"%sRunning cleanup...%s\n",GRN,RST);
-#endif
     free_ast_tree(ast); // free the ast
-#ifdef DEBUG
     fprintf(stderr,"%sTree successfully freed%s\n",GRN,RST);
-#endif 
     free_table(table); // free the sym table
-#ifdef DEBUG
     fprintf(stderr,"%sSymbol table successfully freed%s\n",GRN,RST);
-#endif 
     fclose(yyin); // close the files
-#ifdef DEBUG
     fprintf(stderr,"%syyin successfully closed%s\n",GRN,RST);
-#endif 
     fclose(yyout);
-#ifdef DEBUG
     fprintf(stderr,"%syyout successfully closed%s\n",GRN,RST);
+#else
+    free_ast_tree(ast); // free the ast
+    free_table(table); // free the sym table
+    fclose(yyin); // close the files
+    fclose(yyout);
 #endif 
 
 }
