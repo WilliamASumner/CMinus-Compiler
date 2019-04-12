@@ -739,6 +739,8 @@ static enum type_spec get_type(struct ast_node * root) {
             {
                 struct var_node* r = (struct var_node*)root;
                 struct sym_node* n = table_find(table,r->id);
+                if (n == NULL)
+                    throw_semantic_error(USE_BEFORE_DEC,root);
 
                 if (r->array_expr != NULL) {// check array expr
                     if (r->idType != ARRAY)
@@ -750,7 +752,8 @@ static enum type_spec get_type(struct ast_node * root) {
                     return INTARRAY; // if declared as array but used as variable
                 else if (n->valType == INT && r->valType == INT)
                     return INT;
-                throw_semantic_error(TYPE_MISMATCH,root);
+                else
+                    throw_semantic_error(TYPE_MISMATCH,root);
                 break;
             }
 
@@ -841,7 +844,7 @@ int check_args(struct args_node* args, struct params_node* params) {
     if (args == NULL && params==NULL) {return 1;}
     while (args != NULL && params != NULL) {
         enum type_spec type = get_type((struct ast_node*)args->arg);
-        if (type != params->valType) {
+        if (type != params->valType || params->idType == ARRAY) {
             if (!(type == INTARRAY && params->idType == ARRAY))
                 throw_semantic_error(CALL_MISMATCH,(struct ast_node *)args);
         }
@@ -872,6 +875,7 @@ int check_declaration_main(struct func_dec_node* func) {
 
 //Add in I/O functions for the AST, so that redefs cause an error
 void ast_add_io(struct ast_node* ast) {
+    if (ast == NULL) return;
     struct params_node* output_param = ast_new_params_node(VARIABLE,INT,strdup("x"),NULL);
     if (ast->nodeType != PROGRAM_NODE)
         return; // called on invalid program
@@ -975,8 +979,11 @@ void analyze_ast_tree(struct ast_node * root) {
                 struct cmp_stmt_node* r = (struct cmp_stmt_node*)root;
                 if (didParams != 1)
                     table_enter_scope(table);
+                int oldValue = didParams;
+                didParams = 0;
                 analyze_ast_tree((struct ast_node*)r->local_dec);
                 analyze_ast_tree((struct ast_node*)r->stmt);
+                didParams = oldValue;
                 if (didParams == 1)
                     didParams = 0;
                 else
@@ -1058,11 +1065,18 @@ void analyze_ast_tree(struct ast_node * root) {
             {
                 struct ret_stmt_node* r = (struct ret_stmt_node*)root;
                 struct sym_node* n = table_find(table,currFunc);
+                if (n->valType == VOID && r->ret_expr != NULL)
+                    throw_semantic_error(NON_TERMINATING_VOID_RETURN,root);
                 if(r->ret_expr == NULL && n->valType != VOID)
                     throw_semantic_error(BAD_RETURN_TYPE,root);
+                else if (r->ret_expr != NULL) {
+                    if (get_type((struct ast_node*)r->ret_expr) == VOID &&
+                            n->valType == INT)
+                    throw_semantic_error(BAD_RETURN_TYPE,root);
+                }
                 else if (r->ret_expr != NULL && n->valType != INT)
                     throw_semantic_error(BAD_RETURN_TYPE,root);
-                analyze_ast_tree((struct ast_node*)r->ret_expr); // double 
+                analyze_ast_tree((struct ast_node*)r->ret_expr); // check that the expr is valid 
                 foundReturn = 1;
                 break;
             }
