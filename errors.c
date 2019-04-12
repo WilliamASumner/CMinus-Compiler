@@ -83,8 +83,8 @@ void print_semantic_error(enum semantic_error_type e,struct ast_node* node) {
         case MISSING_RETURN:
             fprintf(stderr,"Missing return in function");
             break;
-        case ALL_GOOD:
-            fprintf(stderr,"All is good");
+        case NON_TERMINATING_VOID_RETURN:
+            fprintf(stderr,"Non terminating return in function");
             break;
         default:
             fprintf(stderr,"undefined semantic error type encountered\n");
@@ -154,11 +154,10 @@ void throw_semantic_error(enum semantic_error_type err,struct ast_node* node) {
 }
 
 void throw_ast_error(enum ast_error_type err, struct ast_node* node) {
-    cleanup(); // clean up table and ast
 #ifdef DEBUG
     print_ast_error(err,node); // show what error we got
 #endif
-
+    cleanup(); // clean up table and ast
     exit(1); // and exit
 }
 
