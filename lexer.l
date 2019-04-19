@@ -1,5 +1,6 @@
 %{
 #include <stdio.h>
+#include <string.h>
 #include "ast.h"
 #include "errors.h"
 #include "parser.tab.h" // grammer token list
@@ -11,10 +12,19 @@ int lastline = 1; // val for returning comment error
 
 // the %x COMMT sets it as a state once a OCOMM is seen
 int to_int(char* str) {
-    long val = atol(str);
-    if (val <= INT_MIN || val >= INT_MAX)
-        throw_lexical_error(INTEGER_OVERFLOW,NULL);
+    long val = atol(str); // keep place in memory in case of error
+    if (val <= INT_MIN || val >= INT_MAX) {
+        long* valP = malloc(sizeof(long)); // make a new pointer for this
+        *valP = val;
+        throw_lexical_error(INTEGER_OVERFLOW,valP);
+    }
     return (int)val;
+}
+
+char* to_str(char* str) {
+    if (strlen(str) > 50)
+        throw_lexical_error(TOO_BIG_ID,str);
+    return strdup(str);
 }
 %}
 
@@ -77,7 +87,7 @@ ERROR .
 
 
 {INT_TOK}         {yylval.integer = to_int(yytext); return NUM;}
-{IDSTR}           {yylval.string = strdup(yytext); return ID;}
+{IDSTR}           {yylval.string = to_str(yytext); return ID;}
 {WHITESPACE}      {/*clear whitespace, do nothing*/}
 {ERROR}           {throw_lexical_error(UNRECOGNIZED_TOKEN,yytext);}
 %%
