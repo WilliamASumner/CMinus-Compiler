@@ -15,13 +15,17 @@ DEBDIR    := debugging
 FILES     := parser.tab lex.yy symtable errors ast codegen stack
 OBJFILES  := $(addprefix $(RELDIR)/, $(addsuffix .o,$(FILES)))
 DOBJFILES := $(addprefix $(DEBDIR)/, $(addsuffix .debug.o,$(FILES)))
+PREPFILES  := $(addsuffix .*,$(FILES))
 
 TARGET    := yaccprog.out
 DTARGET   := yaccdebug.out
-.PHONY    := clean debug-symtable directories
+.PHONY    := clean debug-symtable directories prep final
 
 all: $(TARGET)
 debug: $(DTARGET)
+
+prep: $(TARGET)
+	./prep.sh
 
 $(TARGET): $(OBJFILES)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJFILES) $(LDFLAGS)
@@ -104,3 +108,4 @@ clean:
 	-@rm parser.{output,tab.{h,c}}  2>/dev/null || true # remove parser files
 	-@rm $(TARGET) $(DTARGET)  2>/dev/null || true # remove targets
 	-@rm *.ast *.out 2>/dev/null || true # remove .ast output files
+	-@rm parser.tar 2>/dev/null || true # remove tar file
