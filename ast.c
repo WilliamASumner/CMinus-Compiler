@@ -10,6 +10,7 @@
 #include <string.h>
 #include "ast.h"
 #include "symtable.h"
+#include "codegen.h"
 #include "errors.h"
 
 struct program_node* ast_new_program_node(
@@ -322,6 +323,57 @@ struct local_decs_node* reverse_local_dec_list(
     return prev; // return the new head
 }
 
+void organize_global_decs(struct ast_node* ast) { // push all global var decs to front
+    if (ast == NULL || ast->nodeType != PROGRAM_NODE) return;
+    struct program_node* prog = (struct program_node*)ast;
+    struct dec_list_node* tail = prog->decList;
+    struct dec_list_node* lead = tail->nextDeclaration;
+    struct dec_list_node* prev = tail;
+
+    // first get tail to be a var dec
+    if (tail->var == NULL) {
+        while (lead != NULL) {
+            if (lead->var != NULL) // if a var dec found
+                break;
+            prev = lead;
+            lead = lead->nextDeclaration;
+        }
+        if (lead != NULL) { // if a var dec was found
+            prev->nextDeclaration = lead->nextDeclaration;
+            lead->nextDeclaration = tail;
+            prog->decList = lead;
+            tail = lead;
+            lead = tail->nextDeclaration;
+            prev = tail;
+        }
+        else { return; } // just leave, only one func declaration
+    }
+
+    // by now we have a var in the first part of the declist
+    while (lead != NULL) { // loop through entire structure
+        if (lead->var != NULL) {
+            prev->nextDeclaration = lead->nextDeclaration;
+            lead->nextDeclaration = tail->nextDeclaration;
+            tail->nextDeclaration = lead;
+            tail = lead;
+            lead = tail->nextDeclaration;
+            prev = tail;
+        }
+        else {
+            prev = lead;
+            lead = lead->nextDeclaration;
+        }
+    }
+
+}
+
+void gencode_ast_tree(struct ast_node* root) { // prep AST tree and gen code
+    if (root->nodeType != PROGRAM_NODE)
+        return;
+    organize_global_decs(root); // for easier globals
+    gencode((struct ast_node*)root); // generate that code!
+}
+
 // Helper function to control indenting
 void print_indent(int indent, FILE* outFile) {
     int i = 0;
@@ -346,6 +398,8 @@ void print_ast_tree(struct ast_node* root, FILE* outFile) {
         case FACT_NODE:
         case TERM_NODE:
         case CALL_NODE:
+        case VAR_DEC_NODE:
+        case FUNC_DEC_NODE:
             break;
         default:
             print_indent(indent,outFile);
@@ -374,6 +428,7 @@ void print_ast_tree(struct ast_node* root, FILE* outFile) {
             {
                 struct var_dec_node* r = (struct var_dec_node*)root;
                 char* t = r->valType == INT ? "int" : "void";
+                print_indent(indent,outFile);
                 fprintf(outFile,"[var-declaration [%s] [%s]",t,r->id);
                 if (r->arraySize > 0)
                     fprintf(outFile," [%d]",r->arraySize);
@@ -386,6 +441,7 @@ void print_ast_tree(struct ast_node* root, FILE* outFile) {
                 struct func_dec_node* r = (struct func_dec_node*)root;
                 if (strncmp(r->id,"output",7) == 0 || strncmp(r->id,"input",6) == 0)
                     break;
+                print_indent(indent,outFile);
                 char* t = r->valType == INT ? "int" : "void";
                 fprintf(outFile,"[fun-declaration\n");
                 indent++;
@@ -434,6 +490,7 @@ void print_ast_tree(struct ast_node* root, FILE* outFile) {
                 print_ast_tree((struct ast_node*)r->local_dec,outFile);
                 print_ast_tree((struct ast_node*)r->stmt,outFile);
                 indent--;
+                printf("\n");
                 print_indent(indent,outFile);
                 fprintf(outFile,"]\n");
                 break;
@@ -552,9 +609,10 @@ void print_ast_tree(struct ast_node* root, FILE* outFile) {
                 else {
                     print_ast_tree((struct ast_node*)r->smp_expr,outFile);
                 }
-                if (r->var != NULL) {
+                if (r->var != NULL)
                     fprintf(outFile,"]\n");
-                }
+                else
+                    fprintf(outFile,"\n");
                 break;
             }
 
@@ -802,7 +860,6 @@ static enum type_spec get_type(struct ast_node * root) {
         case FACT_NODE:
             {
                 struct factor_node* r = (struct factor_node*)root;
-                enum type_spec factorType;
                 switch (r->factor_type) {
                     case EXPR:
                         return get_type((struct ast_node*)r->factor.expr);
@@ -820,6 +877,7 @@ static enum type_spec get_type(struct ast_node * root) {
                 }
                 break;
             }
+
         case CALL_NODE:
             {
                 struct call_node* r = (struct call_node*)root;
@@ -893,6 +951,12 @@ void ast_add_io(struct ast_node* ast) {
 }
 
 
+
+
+
+int generateOutput = 0;
+int generateInput = 0;
+
 // Semantic checking for the AST,
 // general flow is check node->check children->finish
 void analyze_ast_tree(struct ast_node * root) {
@@ -930,7 +994,7 @@ void analyze_ast_tree(struct ast_node * root) {
                 if (r->id == NULL) { throw_ast_error(EMPTY_VAR_DEC,root);};
                 if (r->valType == VOID)
                     throw_semantic_error(NON_INT_VAR,root);
-                struct sym_node* newSym = table_add(table,r->id,r->idType,r->valType,NULL);
+                struct sym_node* newSym = table_add(table,r->id,r->idType,r->valType,NULL,0);
                 if (newSym == NULL) // redef or invalid scope
                     throw_semantic_error(REDECLARATION_OR_BAD_SCOPE,root);
                 if (newSym->idType != r->idType || newSym->valType != INT)
@@ -943,7 +1007,7 @@ void analyze_ast_tree(struct ast_node * root) {
             {
                 struct func_dec_node* r = (struct func_dec_node*)root;
                 if (r->id == NULL) { throw_ast_error(EMPTY_FUNC_DEC,root);}
-                struct sym_node* newSym = table_add(table,r->id,r->idType,r->valType,r->params);
+                struct sym_node* newSym = table_add(table,r->id,r->idType,r->valType,r->params,0);
                 if (newSym == NULL) // redef or invalid scope
                     throw_semantic_error(REDECLARATION_OR_BAD_SCOPE,root);
                 currFunc = r->id;
@@ -964,7 +1028,7 @@ void analyze_ast_tree(struct ast_node * root) {
                 struct params_node* r = (struct params_node*)root;
                 if (r->id == NULL)
                     throw_ast_error(EMPTY_VAR_DEC,root);
-                struct sym_node* n = table_add(table,r->id,r->idType,r->valType,NULL);
+                struct sym_node* n = table_add(table,r->id,r->idType,r->valType,NULL,1);
                 if (n == NULL)
                     throw_semantic_error(REDECLARATION_OR_BAD_SCOPE,root);
                 if (n->valType == VOID)
@@ -1179,7 +1243,11 @@ void analyze_ast_tree(struct ast_node * root) {
             {
                 struct call_node* r = (struct call_node*)root;
                 struct sym_node* func = table_find(table,r->id); // find this function
-                if (func == NULL || func->idType != FUNCTION)
+                if (strncmp("output",r->id,7) == 0 )
+                    generateOutput = 1;
+                else if (strncmp("input",r->id,6) == 0)
+                    generateInput = 1;
+                else if (func == NULL || func->idType != FUNCTION)
                     throw_semantic_error(USE_BEFORE_DEC,root);
                 check_args(r->args,func->params);
                 //analyze_ast_tree((struct ast_node*)r->args);

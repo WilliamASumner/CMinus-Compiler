@@ -8,6 +8,10 @@
 #ifndef AST_H
 #define AST_H
 #include "id.h"
+
+extern int generateOutput; // for codgen, whether or not to include asm for i/o
+extern int generateInput;
+
 enum fact_type {EXPR,VAR,CALL,NUMFACT};
 enum relop {UNARYREL,LT,GT,GTE,LTE,EQ,NEQ};
 enum mulop {UNARYMULT,MULT,DIV};
@@ -300,15 +304,10 @@ struct args_node* ast_link_args_node(
         struct args_node* attachee);
 
 struct stmt_node* reverse_stmt_list(struct stmt_node* root);
-
 struct local_decs_node* reverse_local_dec_list(struct local_decs_node* root);
-
 void print_ast_tree(struct ast_node* root, FILE* outFile);
-
 void free_ast_tree(struct ast_node* root); // freeing function
-
 void ast_add_io(struct ast_node* ast);
-
 void analyze_ast_tree(struct ast_node*root);
-
+void gencode_ast_tree(struct ast_node* root);
 #endif
