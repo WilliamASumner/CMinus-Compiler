@@ -4,6 +4,7 @@
 #define TABLE_SIZE 10000 // 100000 symbols should be ok for our compiler proj
 #include "id.h"
 #include "ast.h"
+#include "stack.h"
 
 struct sym_node {
     enum id_type idType; // whether it is a function, variable or array
@@ -11,29 +12,33 @@ struct sym_node {
     char *symbol; // symbol this node holds
     struct sym_node* nextSymbol; // for getting to next symbol
     struct sym_node* prevScope; // for accessing old contexts
-    struct params_node* params; 
+    struct params_node* params; // for func parameters
     int scope;
+    int varNo; // number associated with the id
+    int isParamVar;
 };
 
 struct sym_table {
     struct sym_node* hashtable[TABLE_SIZE]; // array of symnode pointers
     int currScope;
+    struct stack* currVarNoStack;
 };
 
-int hashSymbol(char *symbol);
+int hashSymbol(const char *symbol);
 
 struct sym_table* new_table(void);
 
-struct sym_node* table_find(struct sym_table *table, char *someSymbol);
+struct sym_node* table_find(struct sym_table *table, const char *someSymbol);
 
 struct sym_node* table_add(
         struct sym_table *table,
-        char *symbol,
+        const char *symbol,
         enum id_type idType,
         enum type_spec valType,
-        struct params_node* params);
+        struct params_node* params,
+        int isParamVar);
 
-int table_in_scope(struct sym_table *table, char *someSymbol);
+int table_in_scope(struct sym_table* table, const char* id);
 
 void table_enter_scope(struct sym_table* table);
 

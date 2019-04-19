@@ -9,8 +9,9 @@
 #include <string.h>
 #include "symtable.h"
 #include "id.h"
+#include "stack.h"
 
-int hashSymbol(char *symbol) { // djb2 algorithm
+int hashSymbol(const char *symbol) { // djb2 algorithm
     unsigned long hash = 5381;
     int c;
     while ((c = *(symbol++)))
@@ -24,10 +25,11 @@ struct sym_table* new_table() {
     for(i = 0;i < TABLE_SIZE; i++)
         table->hashtable[i] = NULL; // zero out the table
     table->currScope = 0;
+    table->currVarNoStack = new_stack();
     return table;
 }
 
-struct sym_node* table_find(struct sym_table* table, char *symbol) {
+struct sym_node* table_find(struct sym_table* table, const char *symbol) {
     struct sym_node* entry = table->hashtable[hashSymbol(symbol)];
     if (entry == NULL)
         return NULL;
@@ -47,10 +49,11 @@ struct sym_node* table_find(struct sym_table* table, char *symbol) {
 
 struct sym_node* table_add(
         struct sym_table *table,
-        char *symbol,
+        const char *symbol,
         enum id_type idType,
         enum type_spec valType,
-        struct params_node* params)
+        struct params_node* params,
+        int isParamVar)
 {
     int key = hashSymbol(symbol);
     struct sym_node *entry = table->hashtable[key];
@@ -64,6 +67,8 @@ struct sym_node* table_add(
         entry->idType = idType;
         entry->valType = valType;
         entry->params = params;
+        entry->varNo = return_and_increment(table->currVarNoStack);
+        entry->isParamVar = isParamVar;
         table->hashtable[key] = entry; // add to hash table directly
         return entry;
     }
@@ -89,6 +94,8 @@ struct sym_node* table_add(
         entry->idType = idType;
         entry->valType = valType;
         entry->params = params;
+        entry->varNo = return_and_increment(table->currVarNoStack);
+        entry->isParamVar = isParamVar;
         prevEntry->nextSymbol = entry; // hook up this entry
         return entry;
     }
@@ -105,6 +112,8 @@ struct sym_node* table_add(
                 entry->idType = idType;
                 entry->valType = valType;
                 entry->params = params;
+                entry->varNo = return_and_increment(table->currVarNoStack);
+                entry->isParamVar = isParamVar;
                 table->hashtable[key] = entry; // add to hash table directly
                 return entry;
             } else { // if somewhere in the chaining list
@@ -118,6 +127,8 @@ struct sym_node* table_add(
                 newNode->valType = valType;
                 newNode->params = params;
                 newNode->scope = table->currScope;
+                newNode->varNo = return_and_increment(table->currVarNoStack);
+                newNode->isParamVar = isParamVar;
                 return newNode; // return the new guy
             }
         else if (table->currScope == entry->scope) // redeclaring an entr in same scope
@@ -129,19 +140,21 @@ struct sym_node* table_add(
     return NULL; // some magical error
 }
 
-int table_in_scope(struct sym_table *table, char *symbol) {
+int table_in_scope(struct sym_table *table, const char *symbol) {
     struct sym_node* entry = table_find(table, symbol); // find the current symbol
-    if (entry == NULL || entry->scope <= table->currScope) // if not found
+    if (entry == NULL || entry->scope < table->currScope) // if not found
         return 0;
     return 1;
 }
 
+
 void table_enter_scope(struct sym_table *table) {
     table->currScope++;
+    stack_push(table->currVarNoStack,1); // now start counting at 1
     return;
 }
 
-void free_node(struct sym_node *node) {
+void free_sym_node(struct sym_node *node) {
     if (node->symbol != NULL)
         free(node->symbol);
     free(node);
@@ -155,7 +168,7 @@ static struct sym_node* pop_to_scope(struct sym_node* node, int currentScope) {
     while (node != NULL && node->scope > currentScope) {
         old = node;
         node = node->prevScope;
-        free_node(old);
+        free_sym_node(old);
     }
     if (node == NULL) // if we deleted a whole list
         return pop_to_scope(connectingNode,currentScope); // return the top of the next list
@@ -166,6 +179,7 @@ static struct sym_node* pop_to_scope(struct sym_node* node, int currentScope) {
 //Clear all entries >= the scope number that is being exited
 void table_exit_scope(struct sym_table *table) {
     table->currScope -= 1;
+    stack_pop(table->currVarNoStack); // just pop off and restore the oldest var no
     int i;
     struct sym_node* node;
     for (i = 0; i < TABLE_SIZE; i++) {
@@ -186,20 +200,21 @@ void free_list(struct sym_node *node) { // free recursive lists
         free_list(node->nextSymbol);
     if (node->prevScope != NULL)
         free_list(node->prevScope);
-    if (node->symbol != NULL)
-        free(node->symbol);
-    free(node);
+    free_sym_node(node);
 }
+
 void free_table(struct sym_table *table) {
     if (table == NULL)
         return;
     int i;
     for(i = 0;i < TABLE_SIZE; i++)
         free_list(table->hashtable[i]); // free the nodes
+    if (table->currVarNoStack != NULL)
+        free_stack(table->currVarNoStack);
     free(table);
 }
 
-
+#ifdef DEBUG
 
 void print_node(struct sym_node* n) {
     if (n == NULL) {
@@ -245,3 +260,4 @@ void print_table(struct sym_table* t) {
         print_nodes(t->hashtable[i]);
     }
 }
+#endif
