@@ -6,6 +6,8 @@ wc -l Makefile \
     symtable.{c,h} \
     id.h \
     errors.{c,h} \
-    yacc_header.h
+    yacc_header.h \
+    codegen.{c,h} \
+    stack.{c,h}
 
 
