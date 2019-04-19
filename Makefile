@@ -12,7 +12,7 @@ LDFLAGS   := -ll -ly
 RELDIR    := release
 DEBDIR    := debugging
 
-FILES     := parser.tab lex.yy symtable errors ast codegen
+FILES     := parser.tab lex.yy symtable errors ast codegen stack
 OBJFILES  := $(addprefix $(RELDIR)/, $(addsuffix .o,$(FILES)))
 DOBJFILES := $(addprefix $(DEBDIR)/, $(addsuffix .debug.o,$(FILES)))
 
@@ -44,44 +44,50 @@ $(DEBDIR):
 ###################################
 
 $(RELDIR)/parser.tab.o: parser.tab.c parser.tab.h yacc_header.h
-	gcc -c parser.tab.c -o $@
+	gcc $(CFLAGS) -c parser.tab.c -o $@
 
 $(RELDIR)/lex.yy.o: lex.yy.c
 	gcc -o $@ -c lex.yy.c
 
 $(RELDIR)/symtable.o: symtable.c symtable.h
-	gcc -c symtable.c -o $@
+	gcc $(CFLAGS) -c symtable.c -o $@
 
 $(RELDIR)/errors.o: errors.c errors.h yacc_header.h
-	gcc -c errors.c -o $@
+	gcc $(CFLAGS) -c errors.c -o $@
 
 $(RELDIR)/ast.o: ast.c ast.h
-	gcc -c ast.c -o $@
+	gcc $(CFLAGS) -c ast.c -o $@
 
-$(RELDIR)/codegen.o: codegen.c codegen.h
-	gcc -c codegen.c -o $@
+$(RELDIR)/codegen.o: codegen.c codegen.h ast.c ast.h
+	gcc $(CFLAGS) -c codegen.c -o $@
+
+$(RELDIR)/stack.o: stack.c stack.h
+	gcc $(CFLAGS) -c stack.c -o $@
 
 ###################################
 #########     DEBUG     ###########
 ###################################
 
 $(DEBDIR)/parser.tab.debug.o: parser.tab.c parser.tab.h yacc_header.h
-	gcc $(DFLAGS) -c parser.tab.c -o $@
+	gcc $(CFLAGS) $(DFLAGS) -c parser.tab.c -o $@
 
 $(DEBDIR)/lex.yy.debug.o: lex.yy.c
 	gcc $(DFLAGS) -c lex.yy.c -o $@
 
 $(DEBDIR)/symtable.debug.o: symtable.c symtable.h
-	gcc $(DFLAGS) -c symtable.c -o $@
+	gcc $(CFLAGS) $(DFLAGS) -c symtable.c -o $@
 
 $(DEBDIR)/errors.debug.o: errors.c errors.h yacc_header.h
-	gcc $(DFLAGS) -c errors.c -o $@
+	gcc $(CFLAGS) $(DFLAGS) -c errors.c -o $@
 
 $(DEBDIR)/ast.debug.o: ast.c ast.h
-	gcc $(DFLAGS) -c ast.c -o $@
+	gcc $(CFLAGS) $(DFLAGS) -c ast.c -o $@
 
 $(DEBDIR)/codegen.debug.o: codegen.c codegen.h
-	gcc -c codegen.c -o $@
+	gcc $(CFLAGS) $(DFLAGS) -c codegen.c -o $@
+
+$(DEBDIR)/stack.debug.o: stack.c stack.h
+	gcc $(CFLAGS) $(DFLAGS) -c stack.c -o $@
 
 
 #Create parser.tab.c and parser.tab.h
@@ -97,3 +103,4 @@ clean:
 	-@rm lex.yy.c *.lex 2>/dev/null || true # remove lex files
 	-@rm parser.{output,tab.{h,c}}  2>/dev/null || true # remove parser files
 	-@rm $(TARGET) $(DTARGET)  2>/dev/null || true # remove targets
+	-@rm *.ast *.out 2>/dev/null || true # remove .ast output files
