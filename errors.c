@@ -6,9 +6,11 @@
 #include "yacc_header.h"
 
 
+#ifdef DEBUG
 static const char* RED = "\033[1;31m";
 static const char* GRN = "\033[0;32m";
 static const char* RST = "\033[0m";
+#endif
 
 void yyerror(const char* s) { // what to do on an error in parser
 #ifdef DEBUG
@@ -18,15 +20,20 @@ void yyerror(const char* s) { // what to do on an error in parser
     exit(1);
 }
 
-void print_lexical_error(enum lexical_error_type e, char* s)
+#ifdef DEBUG
+void print_lexical_error(enum lexical_error_type e, void* s)
 {
     fprintf(stderr,"%slexical error: ",RED);
     switch (e) {
         case INTEGER_OVERFLOW:
-            fprintf(stderr,"Too large integer input");
+            fprintf(stderr,"Too large integer input: %d",*(int*)s);
+            free(s); // since this was allocated
             break;
         case UNRECOGNIZED_TOKEN:
-            fprintf(stderr,"Unrecognized token %s",s);
+            fprintf(stderr,"Unrecognized token \"%s\"",(char *)s);
+            break;
+        case TOO_BIG_ID:
+            fprintf(stderr,"ID larger than 50 characters: \"%s\"",(char *)s);
             break;
         default:
             fprintf(stderr,"undefined ast error type encountered\n");
@@ -136,8 +143,9 @@ void print_ast_error(enum ast_error_type e, struct ast_node* node)
     }
     printf(" at node %p %s\n",node,RST);
 }
+#endif
 
-void throw_lexical_error(enum lexical_error_type err,char* s) {
+void throw_lexical_error(enum lexical_error_type err,void* s) {
 #ifdef DEBUG
     print_lexical_error(err,s); // show what error we got
 #endif

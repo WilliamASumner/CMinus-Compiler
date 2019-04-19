@@ -6,7 +6,8 @@ extern struct sym_table* table;
 
 enum lexical_error_type {
     UNRECOGNIZED_TOKEN,
-    INTEGER_OVERFLOW
+    INTEGER_OVERFLOW,
+    TOO_BIG_ID
 };
 
 enum semantic_error_type {
@@ -44,7 +45,7 @@ enum ast_error_type {
 };
 
 void yyerror(const char* s);
-void throw_lexical_error(enum lexical_error_type e,char* s);
+void throw_lexical_error(enum lexical_error_type e,void* s);
 void throw_semantic_error(enum semantic_error_type e,struct ast_node* node);
 void throw_ast_error(enum ast_error_type e, struct ast_node* node);
 void cleanup();
