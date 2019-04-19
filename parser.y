@@ -235,7 +235,7 @@ int main(int argc,char **argv)
     }
     else if (argc ==  2) { // using ./lexerProg infile
         yyin = fopen(argv[1],"r");
-        yyout = fopen("parser-out.ast","w");
+        yyout = stdout;
     }
     else if (argc == 1) { // using ./lexerProg
         yyin = stdin;
@@ -251,26 +251,27 @@ int main(int argc,char **argv)
         return -1;
     }
 
-    table = new_table(); // initialize the table
-    #ifdef DEBUG
+    /*#ifdef DEBUG
     yydebug = 1; // set debug flag
-    #endif
+    #endif */
 
+    table = new_table(); // initialize the table
     yyparse(); // run that parser, baby.
-
     // add in the input and output functions, throws errors on redefinition
     ast_add_io(ast);
-
     analyze_ast_tree(ast);
 
-    
     #ifdef DEBUG
     fprintf(yyout,"\n\n----- PRINTING AST -----\n\n");
     print_ast_tree((struct ast_node*)ast,yyout);
     fprintf(yyout,"\n\n----- FINISH PRINTING AST -----\n\n");
-    #else
-    print_ast_tree((struct ast_node*)ast,yyout);
     #endif
+
+    free_table(table); // clear the table
+    table = new_table(); // reinitialize the table
+
+    gencode_ast_tree(ast); // generate the MIPS!
+
 
     // cleanup
     free_table(table);
