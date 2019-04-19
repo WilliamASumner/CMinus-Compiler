@@ -263,7 +263,7 @@ int main(int argc,char **argv)
 
     #ifdef DEBUG
     fprintf(yyout,"\n\n----- PRINTING AST -----\n\n");
-    print_ast_tree((struct ast_node*)ast,yyout);
+    print_ast_tree((struct ast_node*)ast,stdout);
     fprintf(yyout,"\n\n----- FINISH PRINTING AST -----\n\n");
     #endif
 
