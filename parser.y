@@ -110,7 +110,7 @@ declaration: varDeclaration     {$$ = ast_new_dec_list_node($1,NULL,NULL);}
 ;
 
 varDeclaration: typeSpec ID  SEMICOLON  {$$ =
-              ast_new_var_dec_node(VARIABLE,$1,$2,-1);}
+              ast_new_var_dec_node(VARIABLE,$1,$2,1);}
               | typeSpec ID LBRAC NUM RBRAC SEMICOLON {$$ =
               ast_new_var_dec_node(ARRAY,$1,$2,$4);}
 ;
@@ -262,9 +262,9 @@ int main(int argc,char **argv)
     analyze_ast_tree(ast);
 
     #ifdef DEBUG
-    fprintf(yyout,"\n\n----- PRINTING AST -----\n\n");
+    fprintf(stdout,"\n\n----- PRINTING AST -----\n\n");
     print_ast_tree((struct ast_node*)ast,stdout);
-    fprintf(yyout,"\n\n----- FINISH PRINTING AST -----\n\n");
+    fprintf(stdout,"\n\n----- FINISH PRINTING AST -----\n\n");
     #endif
 
     free_table(table); // clear the table
