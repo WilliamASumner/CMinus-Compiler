@@ -26,6 +26,7 @@ struct sym_table* new_table() {
         table->hashtable[i] = NULL; // zero out the table
     table->currScope = 0;
     table->currVarNoStack = new_stack();
+    stack_push(table->currVarNoStack, 0); // added a head
     return table;
 }
 
@@ -53,7 +54,8 @@ struct sym_node* table_add(
         enum id_type idType,
         enum type_spec valType,
         struct params_node* params,
-        int isParamVar)
+        int isParamVar,
+        int varSize)
 {
     int key = hashSymbol(symbol);
     struct sym_node *entry = table->hashtable[key];
@@ -67,8 +69,9 @@ struct sym_node* table_add(
         entry->idType = idType;
         entry->valType = valType;
         entry->params = params;
-        entry->varNo = return_and_increment(table->currVarNoStack);
+        entry->varNo = return_and_increment(table->currVarNoStack,varSize);
         entry->isParamVar = isParamVar;
+        entry->varSize = varSize;
         table->hashtable[key] = entry; // add to hash table directly
         return entry;
     }
@@ -94,8 +97,9 @@ struct sym_node* table_add(
         entry->idType = idType;
         entry->valType = valType;
         entry->params = params;
-        entry->varNo = return_and_increment(table->currVarNoStack);
+        entry->varNo = return_and_increment(table->currVarNoStack,varSize);
         entry->isParamVar = isParamVar;
+        entry->varSize = varSize;
         prevEntry->nextSymbol = entry; // hook up this entry
         return entry;
     }
@@ -112,8 +116,9 @@ struct sym_node* table_add(
                 entry->idType = idType;
                 entry->valType = valType;
                 entry->params = params;
-                entry->varNo = return_and_increment(table->currVarNoStack);
+                entry->varNo = return_and_increment(table->currVarNoStack,varSize);
                 entry->isParamVar = isParamVar;
+                entry->varSize = varSize;
                 table->hashtable[key] = entry; // add to hash table directly
                 return entry;
             } else { // if somewhere in the chaining list
@@ -127,8 +132,9 @@ struct sym_node* table_add(
                 newNode->valType = valType;
                 newNode->params = params;
                 newNode->scope = table->currScope;
-                newNode->varNo = return_and_increment(table->currVarNoStack);
+                newNode->varNo = return_and_increment(table->currVarNoStack,varSize);
                 newNode->isParamVar = isParamVar;
+                newNode->varSize = varSize;
                 return newNode; // return the new guy
             }
         else if (table->currScope == entry->scope) // redeclaring an entr in same scope
@@ -150,7 +156,7 @@ int table_in_scope(struct sym_table *table, const char *symbol) {
 
 void table_enter_scope(struct sym_table *table) {
     table->currScope++;
-    stack_push(table->currVarNoStack,1); // now start counting at 1
+    stack_push(table->currVarNoStack,0); // now start counting at 0
     return;
 }
 
@@ -248,6 +254,10 @@ void print_table(struct sym_table* t) {
         printf("NULL table\n");
         return;
     }
+    printf("Table: ");
+    printf("varsInScopeStack: ");
+    print_stack(t->currVarNoStack);
+
     int i;
     struct sym_node* n;
     for (i = 0; i < TABLE_SIZE; i++) {

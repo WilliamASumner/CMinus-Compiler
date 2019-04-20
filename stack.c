@@ -41,11 +41,17 @@ int stack_pop(struct stack* stack) {
     return val;
 }
 
-int return_and_increment(struct stack* stack) {
+int stack_peek(struct stack* stack) {
+    if (stack == NULL || stack->head == NULL)
+        return -1;
+    return stack->head->val;
+}
+
+int return_and_increment(struct stack* stack, int inc) {
     if (stack == NULL || stack->head == NULL)
         return -1;
     int val = stack->head->val;
-    stack->head->val += 1;
+    stack->head->val += inc;
     return val;
 }
 

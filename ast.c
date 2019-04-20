@@ -994,7 +994,7 @@ void analyze_ast_tree(struct ast_node * root) {
                 if (r->id == NULL) { throw_ast_error(EMPTY_VAR_DEC,root);};
                 if (r->valType == VOID)
                     throw_semantic_error(NON_INT_VAR,root);
-                struct sym_node* newSym = table_add(table,r->id,r->idType,r->valType,NULL,0);
+                struct sym_node* newSym = table_add(table,r->id,r->idType,r->valType,NULL,0,r->arraySize);
                 if (newSym == NULL) // redef or invalid scope
                     throw_semantic_error(REDECLARATION_OR_BAD_SCOPE,root);
                 if (newSym->idType != r->idType || newSym->valType != INT)
@@ -1007,7 +1007,7 @@ void analyze_ast_tree(struct ast_node * root) {
             {
                 struct func_dec_node* r = (struct func_dec_node*)root;
                 if (r->id == NULL) { throw_ast_error(EMPTY_FUNC_DEC,root);}
-                struct sym_node* newSym = table_add(table,r->id,r->idType,r->valType,r->params,0);
+                struct sym_node* newSym = table_add(table,r->id,r->idType,r->valType,r->params,0,0);
                 if (newSym == NULL) // redef or invalid scope
                     throw_semantic_error(REDECLARATION_OR_BAD_SCOPE,root);
                 currFunc = r->id;
@@ -1028,7 +1028,7 @@ void analyze_ast_tree(struct ast_node * root) {
                 struct params_node* r = (struct params_node*)root;
                 if (r->id == NULL)
                     throw_ast_error(EMPTY_VAR_DEC,root);
-                struct sym_node* n = table_add(table,r->id,r->idType,r->valType,NULL,1);
+                struct sym_node* n = table_add(table,r->id,r->idType,r->valType,NULL,1,1); // CHECK THIS
                 if (n == NULL)
                     throw_semantic_error(REDECLARATION_OR_BAD_SCOPE,root);
                 if (n->valType == VOID)

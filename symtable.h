@@ -16,6 +16,7 @@ struct sym_node {
     int scope;
     int varNo; // number associated with the id
     int isParamVar;
+    int varSize; // amount of space the variable takes
 };
 
 struct sym_table {
@@ -36,7 +37,8 @@ struct sym_node* table_add(
         enum id_type idType,
         enum type_spec valType,
         struct params_node* params,
-        int isParamVar);
+        int isParamVar,
+        int varSize);
 
 int table_in_scope(struct sym_table* table, const char* id);
 
