@@ -8,16 +8,31 @@
 #include "yacc_header.h"
 
 void push_stack_machine(char* reg) {
+#ifdef DEBUG
+    fprintf(yyout,"\n#--- Stack Push: %s ---\n",reg);
     fprintf(yyout,"sw %s, 0($sp)\n",reg); // store the value at the stack
     fprintf(yyout,"addiu $sp, $sp, -4\n"); // update the stack
+    fprintf(yyout,"#--- Stack Push: %s ---\n\n",reg);
+#else
+    fprintf(yyout,"sw %s, 0($sp)\n",reg); // store the value at the stack
+    fprintf(yyout,"addiu $sp, $sp, -4\n"); // update the stack
+#endif
+
 }
 
 void pop_stack_machine(char* reg) {
+#ifdef DEBUG
+    fprintf(yyout,"\n#--- Stack Pop: %s ---\n",reg);
     fprintf(yyout,"addiu $sp, $sp, 4\n"); // move stack pointer
     fprintf(yyout,"lw %s, 0($sp)\n",reg); // get data from stack
+    fprintf(yyout,"#--- Stack Pop: %s ---\n\n",reg);
+#else
+    fprintf(yyout,"addiu $sp, $sp, 4\n"); // move stack pointer
+    fprintf(yyout,"lw %s, 0($sp)\n",reg); // get data from stack
+#endif
 }
 
-void gencode_output(void) {
+void gencode_output(void) { // void output(int x)
     push_stack_machine("$ra"); // push ra
     fprintf(yyout,"lw $a0, 4($fp)\n"); // load variable x
     fprintf(yyout,"li $v0, 1\n"); // load print int function
@@ -26,16 +41,18 @@ void gencode_output(void) {
     fprintf(yyout,"li $a0, 0x0a\n");
     fprintf(yyout,"syscall\n"); // print newline
     fprintf(yyout,"li $a0, 0\n"); // return value of 0
+    fprintf(yyout,"lw $ra 4($sp)\n"); // restore sp
     fprintf(yyout,"addiu $sp, $sp, 12\n"); // restore sp
     fprintf(yyout,"lw $fp 0($sp)\n"); // restore fp
     fprintf(yyout,"jr $ra\n");
 }
 
-void gencode_input(void) {
+void gencode_input(void) { // int input(void)
     push_stack_machine("$ra");
     fprintf(yyout,"li $v0, 5\n"); // load read int function
     fprintf(yyout,"syscall\n"); // wait for int
     fprintf(yyout,"move $a0, $v0\n"); // return value
+    fprintf(yyout,"lw $ra 4($sp)\n"); // restore sp
     fprintf(yyout,"addiu $sp, $sp, 8\n"); // restore sp
     fprintf(yyout,"lw $fp 0($sp)\n"); // restore fp
     fprintf(yyout,"jr $ra\n");
@@ -78,10 +95,22 @@ int get_total_var_offset(struct sym_table* table, struct sym_node* node) {
 }
 
 
+
 int cleanup_func_offset(struct sym_table* table, struct sym_node* funcNode) {
     int n = 8; // 4 for $fp and 4 for old $ra
     n += get_total_var_offset(table,funcNode);
+    n += (4*count_params(funcNode->params));
     return n; // TODO FILL IN
+}
+
+void gencode_cleanup_scope() {
+    if (stack_peek(table->currVarNoStack) != 0) {
+#ifdef DEBUG
+        fprintf(yyout,"addiu $sp, $sp, %d # cleaning up scope\n",4*stack_peek(table->currVarNoStack));
+#else
+        fprintf(yyout,"addiu $sp, $sp, %d\n",4*stack_peek(table->currVarNoStack));
+#endif
+    }
 }
 
 void gencode(struct ast_node* root) {
@@ -128,7 +157,7 @@ void gencode(struct ast_node* root) {
                     fprintf(yyout,"\n");
                 }
                 else {
-                    fprintf(yyout,"addiu $sp, $sp, -%d\n",r->arraySize); // add stack space
+                    fprintf(yyout,"addiu $sp, $sp, -%d\n",r->arraySize*4); // add stack space
                 }
                 break;
             }
@@ -138,13 +167,17 @@ void gencode(struct ast_node* root) {
                 struct func_dec_node* r = (struct func_dec_node*)root;
                 if (!doneWithData) { // this is the first function
                     doneWithData = 1;
+#if DEBUG
                     fprintf(yyout,"\n.text\nj main\n"); // print text section header
+#else
+                    fprintf(yyout,"\n.text\n"); // print text section header
+#endif
                 }
 
                 if (strncmp(r->id,"output",7) == 0) {
                     if (!generateOutput)
                         break; // don't do anything if ouput not used
-                    fprintf(yyout,"_f_%s:\nmove $fp $sp\n",r->id); // start writing function
+                    fprintf(yyout,"_f_%s:\nmove $fp $sp\n",r->id); // start
                     gencode_output();
 
                     break;
@@ -155,12 +188,8 @@ void gencode(struct ast_node* root) {
                     gencode_input();
                     break;
                 }
-#ifdef DEBUG
-                fprintf(yyout,"\n_f_%s:\n\nmove $fp $sp\n",r->id); // start writing function
-#else
-                fprintf(yyout,"_f_%s: move $fp $sp\n",r->id); // start writing function
-#endif
-                push_stack_machine("$ra");
+                fprintf(yyout,"_f_%s:\nmove $fp $sp\n",r->id); // label
+                push_stack_machine("$ra"); // save ret addr
 
                 struct sym_node* funcNode = table_add(table,r->id,r->idType,r->valType,r->params,0,0);
                 currFunc = r->id;
@@ -168,23 +197,21 @@ void gencode(struct ast_node* root) {
                 table_enter_scope(table);
                 gencode((struct ast_node*)r->params);
                 gencode((struct ast_node*)r->stmt);
-                table_exit_scope(table);
                 currFunc = NULL;
 
                 // cleanup
-#ifdef DEBUG
-                fprintf(yyout,"\n_f_%s_exit:\n\n",r->id);
-#else
-                fprintf(yyout,"_f_%s_exit:\n",r->id);
-#endif
+                fprintf(yyout,"\n_f_%s_exit:\n",r->id); // label
  
+                gencode_cleanup_scope(); // generates the needed cleanup
+#ifdef DEBUG
+                fprintf(yyout,"#^^^cleanup of scope: %d\n",table->currScope);
+#endif
+                table_exit_scope(table); // update table
                 fprintf(yyout,"lw $ra, %d($sp)\n",4);
                 fprintf(yyout,"addiu $sp, $sp, %d\n",cleanup_func_offset(table,funcNode)); // AND THIS
                 fprintf(yyout,"lw $fp 0($sp)\n");
                 fprintf(yyout,"jr $ra\n");
-#ifdef DEBUG
-                fprintf(yyout,"\n");
-#endif
+                fprintf(yyout,"\n\n");
                 break;
             }
 
@@ -208,14 +235,7 @@ void gencode(struct ast_node* root) {
                 gencode((struct ast_node*)r->local_dec);
                 gencode((struct ast_node*)r->stmt);
 
-                if (stack_peek(table->currVarNoStack) != 0) {
-#ifdef DEBUG
-                    fprintf(yyout,"addiu $sp, $sp, %d # cleaning up scope\n",4*stack_peek(table->currVarNoStack));
-#else
-                    fprintf(yyout,"addiu $sp, $sp, -%d\n",4*stack_peek(table->currVarNoStack));
-#endif
-                }
-
+                gencode_cleanup_scope(); // cleanup the scope
 
                 keepScopeForParams = oldValue;
                 if (keepScopeForParams == 1)
@@ -272,7 +292,7 @@ void gencode(struct ast_node* root) {
                 int thisConditionalNumber = conditionalNumber++; // save for this specific if, but increase for the next if
 
                 gencode((struct ast_node*)r->if_expr);
-                fprintf(yyout,"bne $a0, 0, _if_branch%d:\n",thisConditionalNumber); // complete relative operator
+                fprintf(yyout,"bne $a0, 0, _if_branch%d\n",thisConditionalNumber); // complete relative operator
 
                 fprintf(yyout,"_else_branch%d:\n",thisConditionalNumber); // add header for else
                 gencode((struct ast_node*)r->else_stmt);
@@ -290,9 +310,9 @@ void gencode(struct ast_node* root) {
                 struct iter_stmt_node* r = (struct iter_stmt_node*)root;
                 fprintf(yyout,"_loop%d:\n",loopNum++);
                 gencode((struct ast_node*)r->while_expr);
-                fprintf(yyout,"beq $a0, 0, _end_loop%d:\n",thisLoopNum);
+                fprintf(yyout,"beq $a0, 0, _end_loop%d\n",thisLoopNum);
                 gencode((struct ast_node*)r->while_stmt);
-                fprintf(yyout,"j _loop%d:\n",thisLoopNum);
+                fprintf(yyout,"j _loop%d\n",thisLoopNum);
                 fprintf(yyout,"_end_loop%d:\n",thisLoopNum);
                 break;
             }
@@ -302,6 +322,8 @@ void gencode(struct ast_node* root) {
                 struct ret_stmt_node* r = (struct ret_stmt_node*)root;
                 //struct sym_node* n = table_find(table,currFunc);
                 gencode((struct ast_node*)r->ret_expr); // check that the expr is valid
+                if (table->currScope > 1) // if higher than curr func scope
+                    gencode_cleanup_scope();
                 fprintf(yyout,"j _f_%s_exit\n",currFunc); // jump to end of function
                 break;
             }
@@ -352,6 +374,10 @@ void gencode(struct ast_node* root) {
             { // now a usage of value, see above for assignment
                 struct var_node* r = (struct var_node*)root;
                 struct sym_node* n = table_find(table,r->id);
+                int offsetDirection = n->isParamVar ? 1 : -1;
+#ifdef DEBUG
+                fprintf(yyout,"\n#--- var: %s---\n",r->id);
+#endif
                 if (n->scope == 0) { // if global
                     if (r->idType == VAR) {
                         fprintf(yyout,"lw $a0, _g_%s\n",r->id); // load global val
@@ -365,19 +391,23 @@ void gencode(struct ast_node* root) {
                         fprintf(yyout,"lw $a0, 0($t1)\n"); // store the value into the var
                     }
                 }
-                else if (r->array_expr != NULL) {
+                else if (r->array_expr != NULL) { // array access
                     gencode((struct ast_node*)r->array_expr); // arrayexpr -> $a0
-                    fprintf(yyout,"sub $sp, $sp, $a0\n"); // move to array offset
-                    fprintf(yyout,"lw $t1, -%d($fp)\n",get_var_offset(table,n)); //val
+                    fprintf(yyout,"add $sp, $sp, $a0\n"); // move to array offset
+                    fprintf(yyout,"lw $t1, %d($fp)\n",offsetDirection*get_var_offset(table,n)); // 
                     fprintf(yyout,"add $sp, $sp, $a0\n"); // restore sp
                     fprintf(yyout,"move $a0, $t1\n"); // move the val to acc
-                } else {
-                    fprintf(yyout,"lw $a0, -%d($fp)\n",get_var_offset(table,n));
+                } else { // regular var access
+                    fprintf(yyout,"lw $a0, %d($fp)\n",offsetDirection*get_var_offset(table,n));
                 }
+
+#ifdef DEBUG
+                fprintf(yyout,"#--- var: %s---\n\n",r->id);
+#endif
                 break;
             }
 
-        case SMP_EXPR_NODE:
+        case SMP_EXPR_NODE: // comparison statement
             {
                 struct smp_expr_node* r = (struct smp_expr_node*)root;
                 gencode((struct ast_node*)r->left); // generate val of left
@@ -433,10 +463,10 @@ void gencode(struct ast_node* root) {
                     pop_stack_machine("$t1");
                     switch (r->op) {
                         case PLUS:
-                            fprintf(yyout,"add $a0, $t1, $a0");
+                            fprintf(yyout,"add $a0, $t1, $a0\n");
                             break;
                         case MINUS:
-                            fprintf(yyout,"sub $a0, $t1, $a0");
+                            fprintf(yyout,"sub $a0, $t1, $a0\n");
                             break;
                         default:
                             break;
