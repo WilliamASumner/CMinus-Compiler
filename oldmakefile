@@ -1,8 +1,8 @@
 #Written by Will Sumner
 #Create parsing program
 
-yaccprog.out: parser.tab.c lex.yy.c ast.c ast.h symtable.c symtable.h
-	gcc -o yaccprog.out parser.tab.c lex.yy.c ast.c symtable.c errors.c -ll -ly
+yaccprog.out: parser.tab.c lex.yy.c ast.c ast.h symtable.c symtable.h stack.c stack.h id.h yacc_header.h errors.c errors.h codegen.c codegen.h
+	gcc -o yaccprog.out parser.tab.c lex.yy.c ast.c symtable.c errors.c stack.c codegen.c -ll -ly
 debug: parser.tab.c lex.yy.c ast.c ast.h symtable.c symtable.h
 	gcc -g -DDEBUG -o yaccdebug.out parser.tab.c lex.yy.c ast.c symtable.c errors.c -ll -ly
 
@@ -15,7 +15,7 @@ lex.yy.c: lexer.l
 	lex lexer.l
 
 clean:
-	-@rm -f $(OBJFILES) $(TARGET) 2>/dev/null || true
+	-@rm -f yaccprog.out yaccdebug.out  2>/dev/null || true # remove binaries
 	-@rm lex.yy.c *.lex 2>/dev/null || true # remove lex files
 	-@rm parser.tab.h parser.tab.c 2>/dev/null || true # remove parser files
 	-@rm -r parser.output *.dSYM/ 2>/dev/null || true # remove parser output files as well as debug folders
