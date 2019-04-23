@@ -69,7 +69,8 @@ struct sym_node* table_add(
         entry->idType = idType;
         entry->valType = valType;
         entry->params = params;
-        entry->varNo = return_and_increment(table->currVarNoStack,varSize);
+        if (!isParamVar)
+            entry->varNo = return_and_increment(table->currVarNoStack,varSize);
         entry->isParamVar = isParamVar;
         entry->varSize = varSize;
         table->hashtable[key] = entry; // add to hash table directly
@@ -97,7 +98,8 @@ struct sym_node* table_add(
         entry->idType = idType;
         entry->valType = valType;
         entry->params = params;
-        entry->varNo = return_and_increment(table->currVarNoStack,varSize);
+        if (!isParamVar)
+            entry->varNo = return_and_increment(table->currVarNoStack,varSize);
         entry->isParamVar = isParamVar;
         entry->varSize = varSize;
         prevEntry->nextSymbol = entry; // hook up this entry
@@ -116,7 +118,8 @@ struct sym_node* table_add(
                 entry->idType = idType;
                 entry->valType = valType;
                 entry->params = params;
-                entry->varNo = return_and_increment(table->currVarNoStack,varSize);
+                if (!isParamVar)
+                    entry->varNo = return_and_increment(table->currVarNoStack,varSize);
                 entry->isParamVar = isParamVar;
                 entry->varSize = varSize;
                 table->hashtable[key] = entry; // add to hash table directly
@@ -132,7 +135,8 @@ struct sym_node* table_add(
                 newNode->valType = valType;
                 newNode->params = params;
                 newNode->scope = table->currScope;
-                newNode->varNo = return_and_increment(table->currVarNoStack,varSize);
+                if(!isParamVar)
+                    newNode->varNo = return_and_increment(table->currVarNoStack,varSize);
                 newNode->isParamVar = isParamVar;
                 newNode->varSize = varSize;
                 return newNode; // return the new guy
