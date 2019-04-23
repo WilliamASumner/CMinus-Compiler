@@ -261,7 +261,7 @@ int main(int argc,char **argv)
     ast_add_io(ast);
     analyze_ast_tree(ast);
 
-    #ifdef DEBUG
+    #ifdef DEBUG // print debug info to make life easier
     fprintf(stdout,"\n\n----- PRINTING AST -----\n\n");
     print_ast_tree((struct ast_node*)ast,stdout);
     fprintf(stdout,"\n\n----- FINISH PRINTING AST -----\n\n");
