@@ -107,5 +107,5 @@ clean:
 	-@rm lex.yy.c *.lex 2>/dev/null || true # remove lex files
 	-@rm parser.{output,tab.{h,c}}  2>/dev/null || true # remove parser files
 	-@rm $(TARGET) $(DTARGET)  2>/dev/null || true # remove targets
-	-@rm *.ast *.out 2>/dev/null || true # remove .ast output files
+	-@rm *.ast *.out *.asm 2>/dev/null || true # remove output files
 	-@rm parser.tar 2>/dev/null || true # remove tar file
