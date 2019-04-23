@@ -1130,7 +1130,7 @@ void analyze_ast_tree(struct ast_node * root) {
                 struct ret_stmt_node* r = (struct ret_stmt_node*)root;
                 struct sym_node* n = table_find(table,currFunc);
                 if (n->valType == VOID && r->ret_expr != NULL)
-                    throw_semantic_error(NON_TERMINATING_VOID_RETURN,root);
+                    throw_semantic_error(BAD_RETURN_TYPE,root);
                 if(r->ret_expr == NULL && n->valType != VOID)
                     throw_semantic_error(BAD_RETURN_TYPE,root);
                 else if (r->ret_expr != NULL) {
