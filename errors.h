@@ -26,7 +26,6 @@ enum semantic_error_type {
     NON_INT_FACT,
     BAD_RETURN_TYPE,
     MISSING_RETURN,
-    NON_TERMINATING_VOID_RETURN,
     ALL_GOOD
 };
 

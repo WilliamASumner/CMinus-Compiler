@@ -46,13 +46,54 @@ void print_semantic_error(enum semantic_error_type e,struct ast_node* node) {
     fprintf(stderr,"%ssemantic error: ",RED);
     switch (e) {
         case USE_BEFORE_DEC:
-            fprintf(stderr,"Use of variable or function before declaration");
+            {
+                switch(node->nodeType) {
+                    case CALL_NODE:
+                        {
+                            struct call_node* c = (struct call_node*)node;
+                            fprintf(stderr,"Use of function '%s' before declaration",c->id);
+                            break;
+                        }
+                    case VAR_NODE:
+                        {
+                            struct var_node* v = (struct var_node*)node;
+
+                            fprintf(stderr,"Use of variable '%s' before declaration",v->id);
+                            break;
+                        }
+                    default:
+                        fprintf(stderr,"Use of variable or function before declaration");
+                }
+            }
             break;
         case LAST_DEC_NOT_VALID_MAIN:
             fprintf(stderr,"Function \"void main(void)\" is not last declaration");
             break;
         case REDECLARATION_OR_BAD_SCOPE:
-            fprintf(stderr,"Redeclaration of variable or function");
+            {
+                switch(node->nodeType) {
+                    case PARAMS_NODE:
+                        {
+                            struct params_node* p = (struct params_node*)node;
+                            fprintf(stderr,"Redeclaration of variable: %s",p->id);
+                            break;
+                        }
+                    case VAR_DEC_NODE:
+                        {
+                            struct var_dec_node* v = (struct var_dec_node*)node;
+                            fprintf(stderr,"Redeclaration of variable: %s",v->id);
+                            break;
+                        }
+                    case FUNC_DEC_NODE:
+                        {
+                            struct func_dec_node* f = (struct func_dec_node*)node;
+                            fprintf(stderr,"Redeclaration of function: %s",f->id);
+                            break;
+                        }
+                    default:
+                        fprintf(stderr,"Redeclaration of variable or function");
+                }
+            }
             break;
         case PARAMS_MISMATCH:
             fprintf(stderr,"Parameter mismatch");
@@ -90,14 +131,11 @@ void print_semantic_error(enum semantic_error_type e,struct ast_node* node) {
         case MISSING_RETURN:
             fprintf(stderr,"Missing return in function");
             break;
-        case NON_TERMINATING_VOID_RETURN:
-            fprintf(stderr,"Non terminating return in function");
-            break;
         default:
             fprintf(stderr,"undefined semantic error type encountered\n");
             return;
     }
-    printf(" at node %p%s\n",node,RST);
+    printf(" (node %p)%s\n",node,RST);
 }
 
 void print_ast_error(enum ast_error_type e, struct ast_node* node)
