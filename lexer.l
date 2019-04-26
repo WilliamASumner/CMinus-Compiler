@@ -13,7 +13,7 @@ int lastline = 1; // val for returning comment error
 // the %x COMMT sets it as a state once a OCOMM is seen
 int to_int(char* str) {
     long val = atol(str); // keep place in memory in case of error
-    if (val <= INT_MIN || val >= INT_MAX) {
+    if (val < INT_MIN || val > INT_MAX) {
         long* valP = malloc(sizeof(long)); // make a new pointer for this
         *valP = val;
         throw_lexical_error(INTEGER_OVERFLOW,valP);
