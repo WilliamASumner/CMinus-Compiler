@@ -19,13 +19,14 @@ PREPFILES  := $(addsuffix .*,$(FILES))
 
 TARGET    := yaccprog.out
 DTARGET   := yaccdebug.out
-.PHONY    := clean debug-symtable directories prep final
+.PHONY    := clean debug-symtable tar
 
 all: $(TARGET)
 debug: $(DTARGET)
-
-prep: $(TARGET)
+tar: compiler.tar
+compiler.tar:
 	./prep.sh
+
 
 $(TARGET): $(OBJFILES)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJFILES) $(LDFLAGS)
