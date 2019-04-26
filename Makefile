@@ -48,7 +48,7 @@ $(DEBDIR):
 #########    RELEASE    ###########
 ###################################
 
-$(RELDIR)/parser.tab.o: parser.tab.c parser.tab.h yacc_header.h
+$(RELDIR)/parser.tab.o: parser.tab.c yacc_header.h
 	gcc $(CFLAGS) -c parser.tab.c -o $@
 
 $(RELDIR)/lex.yy.o: lex.yy.c
@@ -73,7 +73,7 @@ $(RELDIR)/stack.o: stack.c stack.h
 #########     DEBUG     ###########
 ###################################
 
-$(DEBDIR)/parser.tab.debug.o: parser.tab.c parser.tab.h yacc_header.h
+$(DEBDIR)/parser.tab.debug.o: parser.tab.c yacc_header.h
 	gcc $(CFLAGS) $(DFLAGS) -c parser.tab.c -o $@
 
 $(DEBDIR)/lex.yy.debug.o: lex.yy.c
@@ -93,7 +93,6 @@ $(DEBDIR)/codegen.debug.o: codegen.c codegen.h
 
 $(DEBDIR)/stack.debug.o: stack.c stack.h
 	gcc $(CFLAGS) $(DFLAGS) -c stack.c -o $@
-
 
 #Create parser.tab.c and parser.tab.h
 parser.tab.c: parser.y lexer.l
