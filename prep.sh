@@ -1,11 +1,11 @@
 #!/bin/bash
-tar -cvf parser.tar oldmakefile \
+tar -cvf compiler.tar oldmakefile \
     run.sh compile.sh \
     parser.y lexer.l \
+    id.h \
+    yacc_header.h \
     ast.{c,h}  \
     symtable.{c,h} \
     errors.{c,h} \
-    id.h \
-    yacc_header.h \
     codegen.{c,h} \
     stack.{c,h}
