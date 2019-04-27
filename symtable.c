@@ -69,8 +69,10 @@ struct sym_node* table_add(
         entry->idType = idType;
         entry->valType = valType;
         entry->params = params;
-        if (!isParamVar)
+        if (varSize != -1)
             entry->varNo = return_and_increment(table->currVarNoStack,varSize);
+        else
+            entry->varNo = -1;
         entry->isParamVar = isParamVar;
         entry->varSize = varSize;
         table->hashtable[key] = entry; // add to hash table directly
@@ -98,8 +100,10 @@ struct sym_node* table_add(
         entry->idType = idType;
         entry->valType = valType;
         entry->params = params;
-        if (!isParamVar)
+        if (varSize != -1)
             entry->varNo = return_and_increment(table->currVarNoStack,varSize);
+        else
+            entry->varNo = -1;
         entry->isParamVar = isParamVar;
         entry->varSize = varSize;
         prevEntry->nextSymbol = entry; // hook up this entry
@@ -118,8 +122,10 @@ struct sym_node* table_add(
                 entry->idType = idType;
                 entry->valType = valType;
                 entry->params = params;
-                if (!isParamVar)
+                if (varSize != -1)
                     entry->varNo = return_and_increment(table->currVarNoStack,varSize);
+                else
+                    entry->varNo = -1;
                 entry->isParamVar = isParamVar;
                 entry->varSize = varSize;
                 table->hashtable[key] = entry; // add to hash table directly
@@ -135,8 +141,10 @@ struct sym_node* table_add(
                 newNode->valType = valType;
                 newNode->params = params;
                 newNode->scope = table->currScope;
-                if(!isParamVar)
+                if (varSize != -1)
                     newNode->varNo = return_and_increment(table->currVarNoStack,varSize);
+                else
+                    newNode->varNo = -1;
                 newNode->isParamVar = isParamVar;
                 newNode->varSize = varSize;
                 return newNode; // return the new guy
@@ -184,6 +192,10 @@ static struct sym_node* pop_to_scope(struct sym_node* node, int currentScope) {
         return pop_to_scope(connectingNode,currentScope); // return the top of the next list
     node->nextSymbol = connectingNode;
     return node; // otherwise return the last node that wasn't popped
+}
+
+void table_end_param_decs(struct sym_table *table) {
+    stack_reset(table->currVarNoStack,0);
 }
 
 //Clear all entries >= the scope number that is being exited

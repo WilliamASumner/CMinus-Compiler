@@ -46,6 +46,8 @@ void table_enter_scope(struct sym_table* table);
 
 void table_exit_scope(struct sym_table* table);
 
+void table_end_param_decs(struct sym_table *table);
+
 void free_table(struct sym_table* table);
 
 void print_table(struct sym_table* t);
