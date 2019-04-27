@@ -17,3 +17,5 @@ debugging/
 release/
 *.ast 
 *.jar
+cminus
+cminusdebug
