@@ -1,5 +1,6 @@
 #include <stdlib.h>
 #include "stack.h"
+#include "errors.h"
 
 //#ifdef DEBUG
 #include <stdio.h>
@@ -26,14 +27,14 @@ struct stack* new_stack(){
 
 void stack_push(struct stack* stack, int val) {
     if (stack == NULL)
-        return;
+        throw_stack_error(PUSH_TO_EMPTY_STACK);
     struct stack_node* newHead = make_node(val,stack->head);
     stack->head = newHead;
 }
 
 int stack_pop(struct stack* stack) {
     if (stack == NULL || stack->head == NULL)
-        return -1;
+        throw_stack_error(POP_FROM_EMPTY_STACK);
     int val = stack->head->val;
     struct stack_node* oldHead = stack->head;
     stack->head = oldHead->next_node;
@@ -43,16 +44,21 @@ int stack_pop(struct stack* stack) {
 
 int stack_peek(struct stack* stack) {
     if (stack == NULL || stack->head == NULL)
-        return -1;
+        throw_stack_error(PEEK_ON_EMPTY_STACK);
     return stack->head->val;
 }
 
 int return_and_increment(struct stack* stack, int inc) {
     if (stack == NULL || stack->head == NULL)
-        return -1;
-    int val = stack->head->val;
+        throw_stack_error(RETURN_AND_INC_ON_EMPTY_STACK);
     stack->head->val += inc;
-    return val;
+    return stack->head->val-1;
+}
+
+void stack_reset(struct stack* stack, int i) {
+    if (stack == NULL || stack->head == NULL)
+        throw_stack_error(RESET_ON_EMPTY_STACK);
+    stack->head->val = i;
 }
 
 int add_stack_nodes(struct stack_node* node) {
@@ -62,7 +68,7 @@ int add_stack_nodes(struct stack_node* node) {
 
 int sum_all_scopes(struct stack* stack) {
     if (stack == NULL)
-        return -1; // error
+        throw_stack_error(SUM_ON_EMPTY_STACK);
     return add_stack_nodes(stack->head);
 }
 
@@ -82,14 +88,9 @@ void free_stack(struct stack* stack) {
     free_stack_list(stack->head);
 }
 
-int is_empty(struct stack* stack) {
-    if (stack->head == NULL)
-        return 1;
-    return 0;
-}
 struct stack* copy_stack(struct stack* stack) {
     if (stack == NULL)
-        return NULL;
+        throw_stack_error(COPY_EMPTY_STACK);
     struct stack* newStack = new_stack();
     struct stack_node* curr = stack->head;
     if (curr == NULL)
@@ -107,7 +108,7 @@ struct stack* copy_stack(struct stack* stack) {
 
 struct stack* copy_stack_rev(struct stack* stack) {
     if (stack == NULL)
-        return NULL;
+        throw_stack_error(COPY_EMPTY_STACK);
     struct stack* newStack = new_stack();
     struct stack_node* curr = stack->head;
     while (curr != NULL) {

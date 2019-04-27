@@ -19,6 +19,7 @@ void stack_push(struct stack* stack, int val);
 int stack_pop(struct stack* stack);
 int stack_peek(struct stack* stack);
 int return_and_increment(struct stack* stack,int inc);
+void stack_reset(struct stack* stack, int i);
 int sum_all_scopes(struct stack* stack);
 void free_stack_list(struct stack_node* node);
 void free_stack(struct stack* stack);
