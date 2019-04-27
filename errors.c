@@ -181,6 +181,38 @@ void print_ast_error(enum ast_error_type e, struct ast_node* node)
     }
     printf(" at node %p %s\n",node,RST);
 }
+
+void print_stack_error(enum stack_error_type e)
+{
+    fprintf(stderr,"%sstack error: ",RED);
+    switch (e) {
+        case PUSH_TO_EMPTY_STACK:
+            fprintf(stderr,"attempted push to an empty stack");
+            break;
+        case POP_FROM_EMPTY_STACK:
+            fprintf(stderr,"attempted pop from an empty stack");
+            break;
+        case PEEK_ON_EMPTY_STACK:
+            fprintf(stderr,"attempted peek on an empty stack");
+            break;
+        case RETURN_AND_INC_ON_EMPTY_STACK:
+            fprintf(stderr,"attempted return and increment on an empty stack");
+            break;
+        case RESET_ON_EMPTY_STACK:
+            fprintf(stderr,"attempted decrement on an empty stack");
+            break;
+        case SUM_ON_EMPTY_STACK:
+            fprintf(stderr,"attempted sum on an empty stack");
+            break;
+        case COPY_EMPTY_STACK:
+            fprintf(stderr,"attempted copy on an empty stack");
+            break;
+        default:
+            fprintf(stderr,"unknown stack error");
+    }
+    printf(" %s\n",RST);
+}
+
 #endif
 
 void throw_lexical_error(enum lexical_error_type err,void* s) {
@@ -205,6 +237,14 @@ void throw_ast_error(enum ast_error_type err, struct ast_node* node) {
 #endif
     cleanup(); // clean up table and ast
     exit(1); // and exit
+}
+
+void throw_stack_error(enum stack_error_type err) {
+#ifdef DEBUG
+    print_stack_error(err);
+#endif
+    cleanup();
+    exit(1);
 }
 
 void cleanup() {

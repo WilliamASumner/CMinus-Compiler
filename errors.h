@@ -43,10 +43,21 @@ enum ast_error_type {
     INCOMPLETE_ITER_NODE
 };
 
+enum stack_error_type {
+    PUSH_TO_EMPTY_STACK,
+    POP_FROM_EMPTY_STACK,
+    PEEK_ON_EMPTY_STACK,
+    RETURN_AND_INC_ON_EMPTY_STACK,
+    RESET_ON_EMPTY_STACK,
+    COPY_EMPTY_STACK,
+    SUM_ON_EMPTY_STACK
+};
+
 void yyerror(const char* s);
 void throw_lexical_error(enum lexical_error_type e,void* s);
 void throw_semantic_error(enum semantic_error_type e,struct ast_node* node);
 void throw_ast_error(enum ast_error_type e, struct ast_node* node);
+void throw_stack_error(enum stack_error_type e);
 void cleanup();
 
 #endif
