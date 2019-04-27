@@ -950,7 +950,14 @@ void ast_add_io(struct ast_node* ast) {
     prog->decList = tempNode; //output -> input -> firstDec ... -> NULL, finish linking
 }
 
-
+void update_var_type(struct var_node* var, struct sym_node* node) {
+    if (var->array_expr == NULL &&
+            node->idType == ARRAY &&
+            var->idType == VARIABLE) {
+        var->idType = ARRAY;
+        var->valType = INTARRAY;
+    }
+}
 
 
 
@@ -1166,7 +1173,9 @@ void analyze_ast_tree(struct ast_node * root) {
                 struct sym_node* n = table_find(table,r->id);
                 if (n == NULL)
                     throw_semantic_error(USE_BEFORE_DEC,root);
-                else if (n->idType != r->idType || n->valType != r->valType) {
+                update_var_type(r,n); 
+                if (n->idType != r->idType || n->valType != r->valType) {
+                    if (n->valType != INT || r->valType != INTARRAY)
                     throw_semantic_error(TYPE_MISMATCH,root);
                 }
                 if (r->array_expr != NULL ) {
@@ -1245,12 +1254,13 @@ void analyze_ast_tree(struct ast_node * root) {
                 struct sym_node* func = table_find(table,r->id); // find this function
                 if (strncmp("output",r->id,7) == 0 )
                     generateOutput = 1;
-                else if (strncmp("input",r->id,6) == 0)
+                else if (strncmp("input",r->id,6) == 0){ 
                     generateInput = 1;
+                }
                 else if (func == NULL || func->idType != FUNCTION)
                     throw_semantic_error(USE_BEFORE_DEC,root);
                 check_args(r->args,func->params);
-                //analyze_ast_tree((struct ast_node*)r->args);
+                analyze_ast_tree((struct ast_node*)r->args);
                 break;
             }
 
