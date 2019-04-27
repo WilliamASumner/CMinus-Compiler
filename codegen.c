@@ -423,12 +423,15 @@ void gencode(struct ast_node* root) {
                 if (n->scope == 0) { // if global
                     if (r->idType == VAR) {
                         fprintf(yyout,"lw $a0, _g_%s\n",r->id); // load global val
-                    } else {
+                    } else if (r->array_expr != NULL) { // glob array access
                         gencode_array_offset(r->array_expr);
                         fprintf(yyout,"la $t1, _g_%s\n",n->symbol); // load var
                         fprintf(yyout,"add $t1, $a0, $t1\n"); // add expr
                         fprintf(yyout,"lw $a0, 0($t1)\n"); // read the value from the var
+                    } else { // glob array name
+                        fprintf(yyout,"la $a0, _g_%s\n",n->symbol); // load var
                     }
+
                 }
                 else if (r->array_expr != NULL) { // array access
                     gencode_array_offset(r->array_expr); // arrayexpr -> $a0
@@ -442,7 +445,10 @@ void gencode(struct ast_node* root) {
                         fprintf(yyout,"lw $a0, 0($a0)\n"); // load from addr
                     }
                 } else if (r->idType == ARRAY) { // regular array name (for calls)
-                    fprintf(yyout,"la $a0, %d($fp)\n",varOffset); // load address 
+                    if (n->isParamVar)
+                        fprintf(yyout,"lw $a0, %d($fp)\n",varOffset); // load address stored in param
+                    else // load the address of the local var
+                        fprintf(yyout,"la $a0, %d($fp)\n",varOffset); // load address 
                 } else { // var access
                     fprintf(yyout,"lw $a0, %d($fp)\n",varOffset);
                 }
