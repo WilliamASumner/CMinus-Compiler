@@ -50,6 +50,7 @@ ERROR .
                    yyterminate(); /* end the lexing */
                   }
 
+"//"              {throw_lexical_error(UNRECOGNIZED_TOKEN,yytext);}
 "<="              {yylval.relOperator = LTE; return LTE_TOK;}
 ">="              {yylval.relOperator = GTE; return GTE_TOK;}
 "=="              {yylval.relOperator = EQ; return EQ_TOK;}
