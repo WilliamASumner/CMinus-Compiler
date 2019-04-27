@@ -1,10 +1,12 @@
 #Written by Will Sumner
-#Create parsing program
+#Create compiler program
 
-yaccprog.out: parser.tab.c lex.yy.c ast.c ast.h symtable.c symtable.h stack.c stack.h id.h yacc_header.h errors.c errors.h codegen.c codegen.h
-	gcc -o yaccprog.out parser.tab.c lex.yy.c ast.c symtable.c errors.c stack.c codegen.c -ll -ly
-debug: parser.tab.c lex.yy.c ast.c ast.h symtable.c symtable.h
-	gcc -g -DDEBUG -o yaccdebug.out parser.tab.c lex.yy.c ast.c symtable.c errors.c -ll -ly
+all: cminus
+
+cminus: parser.tab.c lex.yy.c ast.c ast.h symtable.c symtable.h stack.c stack.h id.h yacc_header.h errors.c errors.h codegen.c codegen.h
+	gcc -o cminus parser.tab.c lex.yy.c ast.c symtable.c errors.c stack.c codegen.c -ll -ly
+cminusdebug: parser.tab.c lex.yy.c ast.c ast.h symtable.c symtable.h
+	gcc -g -DDEBUG -o cminusdebug parser.tab.c lex.yy.c ast.c symtable.c errors.c -ll -ly
 
 #Create parser.tab.c and parser.tab.h
 parser.tab.c: parser.y lexer.l
@@ -15,7 +17,7 @@ lex.yy.c: lexer.l
 	lex lexer.l
 
 clean:
-	-@rm -f yaccprog.out yaccdebug.out  2>/dev/null || true # remove binaries
+	-@rm -f cminus cminusdebug  2>/dev/null || true # remove binaries
 	-@rm lex.yy.c *.lex 2>/dev/null || true # remove lex files
 	-@rm parser.tab.h parser.tab.c 2>/dev/null || true # remove parser files
 	-@rm -r parser.output *.dSYM/ 2>/dev/null || true # remove parser output files as well as debug folders
