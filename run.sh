@@ -1,12 +1,12 @@
 #!/bin/bash
-if [[ -f "./yaccdebug.out" ]]; then
+if [[ -f "./cminusdebug" ]]; then
     if [ $# -eq 2 ]; then
-        lldb -s .lldbstart -f ./yaccdebug.out $1 $2
+        lldb -s .lldbstart -f ./cminusdebug $1 $2
     else
         file=$(basename $1) # get file
-        lldb -s .lldbstart -f ./yaccdebug.out $1 ${file%.*}.asm
+        lldb -s .lldbstart -f ./cminusdebug $1 ${file%.*}.asm
     fi
 
-elif [[ -f "./yaccprog.out" ]]; then
-    ./yaccprog.out $1 $2
+elif [[ -f "./cminus" ]]; then
+    ./cminus $1 $2
 fi
