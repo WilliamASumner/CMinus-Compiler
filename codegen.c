@@ -58,28 +58,47 @@ void gencode_input(void) { // int input(void)
     fprintf(yyout,"jr $ra\n");
 }
 
-int get_var_offset(struct sym_table* table, struct sym_node* node) {
+void gencode_array_offset(struct expr_node* expr) {
+    gencode((struct ast_node*)expr); // generate offset value
+    fprintf(yyout,"li $t2, 4\n");
+    fprintf(yyout,"mult $a0, $t2\n"); // turn into a multiple of 4
+    fprintf(yyout,"mflo $a0\n"); // move result to $a0
+}
+
+int get_var_offset(struct sym_table* table, struct sym_node* node,int params) {
     int varNo = node->varNo;
     int varScope = node->scope;
     int scope = table->currScope;
     struct stack* varStack = copy_stack_rev(table->currVarNoStack); // start from top
-    int offset = 1;
-    while (scope < varScope) { // while there are variables in between
-        offset += stack_pop(varStack); // add all vars from block
-        scope -= 1;
+    stack_pop(varStack); // no need for globals
+    int direction = node->isParamVar ? 1 : -1;
+    int offset = 0;
+    if (node->isParamVar) {
+#ifdef DEBUG
+        printf("calculating offset of param %s: offset = (%d - %d)\n",node->symbol,params,varNo);
+#endif
+        offset = (params - varNo); // add on the offset at the current scope
     }
-    offset += varNo; // add on the offset at the current scope
+    else {
+#ifdef DEBUG
+        printf("scope of table is: %d and scope of var %s is %d\n",scope,node->symbol,varScope);
+    print_stack(varStack);
+#endif
+        scope = 1;
+        while (scope < varScope) { // while not at curr scope
+            offset += stack_pop(varStack); // add all vars from block
+            scope += 1;
+        }
+#ifdef DEBUG
+        printf("calculating offset of var %s (%d): %d +=  %d --> ",node->symbol,varScope,offset,varNo+1);
+#endif
+        offset += varNo+1; // add on the offset at the current scope
+#ifdef DEBUG
+        printf("%d\n",offset);
+#endif
+    }
     free_stack(varStack); // cleanup
-    return offset*4; // 4 for alignment
-}
-
-int count_params(struct params_node* params) {
-    int count = 0;
-    while (params!= NULL) {
-        count += 1;
-        params = params->next;
-    }
-    return count;
+    return offset*4*direction; // 4 for alignment
 }
 
 int get_total_var_offset(struct sym_table* table, struct sym_node* node) {
@@ -94,12 +113,21 @@ int get_total_var_offset(struct sym_table* table, struct sym_node* node) {
     return val*4; // aligned total offset
 }
 
+int count_params(struct params_node* p) {
+    int n = 0;
+    while (p != NULL) {
+        n++;
+        p = p->next;
+    }
+    return n;
+}
 
 
-int cleanup_func_offset(struct sym_table* table, struct sym_node* funcNode) {
+
+int cleanup_func_offset(struct sym_table* table, struct sym_node* funcNode,int params) {
     int n = 8; // 4 for $fp and 4 for old $ra
     n += get_total_var_offset(table,funcNode);
-    n += (4*count_params(funcNode->params));
+    n += (4*params);
     return n; // TODO FILL IN
 }
 
@@ -120,6 +148,7 @@ void gencode(struct ast_node* root) {
     static int keepScopeForParams = 0;
     static int conditionalNumber = 1;
     static int loopNum = 0;
+    static int params = -1;
     switch(root->nodeType) {
         case PROGRAM_NODE:
             {
@@ -136,8 +165,10 @@ void gencode(struct ast_node* root) {
         case DEC_LIST_NODE:
             {
                 struct dec_list_node* r = (struct dec_list_node*)root;
-                gencode((struct ast_node*)r->var);
-                gencode((struct ast_node*)r->func);
+                if (r->var != NULL)
+                    gencode((struct ast_node*)r->var);
+                else
+                    gencode((struct ast_node*)r->func);
                 gencode((struct ast_node*)r->nextDeclaration); //gen next dec
                 break;
             }
@@ -147,6 +178,7 @@ void gencode(struct ast_node* root) {
                 struct var_dec_node* r = (struct var_dec_node*)root;
                 //struct sym_node* newSym = table_add(table,r->id,r->idType,r->valType,NULL,0);
                 int varSize = r->arraySize;
+                printf("variable %s of size: %d\n",r->id,varSize);
 
                 table_add(table,r->id,r->idType,r->valType,NULL,0,varSize);
                 if (table->currScope == 0) { // global variable declaration
@@ -177,7 +209,7 @@ void gencode(struct ast_node* root) {
                 if (strncmp(r->id,"output",7) == 0) {
                     if (!generateOutput)
                         break; // don't do anything if ouput not used
-                    fprintf(yyout,"_f_%s:\nmove $fp $sp\n",r->id); // start
+                    fprintf(yyout,"\n_f_%s:\nmove $fp $sp\n",r->id); // start
                     gencode_output();
 
                     break;
@@ -188,14 +220,17 @@ void gencode(struct ast_node* root) {
                     gencode_input();
                     break;
                 }
-                fprintf(yyout,"_f_%s:\nmove $fp $sp\n",r->id); // label
+                fprintf(yyout,"\n_f_%s:\nmove $fp $sp\n",r->id); // label
                 push_stack_machine("$ra"); // save ret addr
 
-                struct sym_node* funcNode = table_add(table,r->id,r->idType,r->valType,r->params,0,0);
+                struct sym_node* funcNode = table_add(table,r->id,r->idType,r->valType,r->params,0,-1);
                 currFunc = r->id;
                 keepScopeForParams = 1;
                 table_enter_scope(table);
                 gencode((struct ast_node*)r->params);
+                params = count_params(r->params);
+                printf("params of func: %s are %d\n",currFunc,params); // REM
+                table_end_param_decs(table); // prepare for local decs
                 gencode((struct ast_node*)r->stmt);
                 currFunc = NULL;
 
@@ -208,10 +243,11 @@ void gencode(struct ast_node* root) {
 #endif
                 table_exit_scope(table); // update table
                 fprintf(yyout,"lw $ra, %d($sp)\n",4);
-                fprintf(yyout,"addiu $sp, $sp, %d\n",cleanup_func_offset(table,funcNode)); // AND THIS
+                fprintf(yyout,"addiu $sp, $sp, %d\n",cleanup_func_offset(table,funcNode,params)); // AND THIS
                 fprintf(yyout,"lw $fp 0($sp)\n");
                 fprintf(yyout,"jr $ra\n");
                 fprintf(yyout,"\n\n");
+                params = -1;
                 break;
             }
 
@@ -220,7 +256,7 @@ void gencode(struct ast_node* root) {
                 struct params_node* r = (struct params_node*)root;
                 gencode((struct ast_node*)r->next); // generate last params node 1st
                 //struct sym_node* n = table_add(table,r->id,r->idType,r->valType,NULL,1); // add in positions of args
-                table_add(table,r->id,r->idType,r->valType,NULL,1,0); // add in positions of args
+                table_add(table,r->id,r->idType,r->valType,NULL,1,1); // add in positions of args
                 break;
             }
 
@@ -235,7 +271,8 @@ void gencode(struct ast_node* root) {
                 gencode((struct ast_node*)r->local_dec);
                 gencode((struct ast_node*)r->stmt);
 
-                gencode_cleanup_scope(); // cleanup the scope
+                if (table->currScope > 1) // if higher than curr func scope
+                    gencode_cleanup_scope(); // cleanup the scope
 
                 keepScopeForParams = oldValue;
                 if (keepScopeForParams == 1)
@@ -248,8 +285,8 @@ void gencode(struct ast_node* root) {
         case LOCAL_DECS_NODE:
             {
                 struct local_decs_node* r = (struct local_decs_node*)root;
-                gencode((struct ast_node*)r->next); // generate last variable declaration first
                 gencode((struct ast_node*)r->var_dec);
+                gencode((struct ast_node*)r->next); // generate last variable declaration first
                 break;
             }
 
@@ -333,38 +370,43 @@ void gencode(struct ast_node* root) {
                 struct expr_node* r = (struct expr_node*)root;
                 if (r->var != NULL) { // assignment: var = expr
                     struct sym_node* n = table_find(table,r->var->id);
+                    int varOffset = get_var_offset(table,n,params);
 
                     gencode((struct ast_node*)r->expr); // compute expr val
-                    if (n->scope == 0) {
-                        if (n->idType == VAR) {
-                            fprintf(yyout,"sw $a0, _g_%s\n",n->symbol); // store the value into the var
-                         }else {
-                            push_stack_machine("$a0"); // save result
-                            gencode((struct ast_node*)r->var->array_expr);
+                    if (n->scope == 0) { // if global
+                        if (n->idType == VAR) { // just store variable
+                            fprintf(yyout,"sw $a0, _g_%s\n",n->symbol);
+                         } else { // load global addr, add offset then store
+                            push_stack_machine("$a0"); // save result of expr
+                            gencode_array_offset(r->var->array_expr); // get offset
                             fprintf(yyout,"la $t1, _g_%s\n",n->symbol); // load var
-                            fprintf(yyout,"li $t2, 4\n"); // load var
-                            fprintf(yyout,"mult $a0, $t2\n"); // multiple of 4
-                            fprintf(yyout,"mflo $a0\n"); // move result
                             fprintf(yyout,"add $t1, $a0, $t1\n"); // add expr
                             pop_stack_machine("$a0"); // pop to $a0
                             fprintf(yyout,"sw $a0, 0($t1)\n");
                         }
 
                     }
-                    else {
-                        if (n->idType == VAR)
-                            fprintf(yyout,"sw $a0, -%d($fp)\n",get_var_offset(table, n)); // store the value into the var
-                        else {
-                            push_stack_machine("$a0");
-                            gencode((struct ast_node*)r->var->array_expr);
-                            fprintf(yyout,"la $t1, -%d($fp)\n",get_var_offset(table, n)); // load var
-                            fprintf(yyout,"add $t1, $a0, $t1\n"); // inc addr
-                            pop_stack_machine("$a0"); // pop to $a0
-                            fprintf(yyout,"sw $a0, -%d($fp)\n",get_var_offset(table, n)); // store the value into the var
-
-                        }
+                    else if (n->idType == VAR) { // local/parameter variable
+                        fprintf(yyout,"sw $a0, %d($fp)\n",varOffset); // save $a0
                     }
-                } else {
+                    else if (n->isParamVar) { // parameter array
+                        push_stack_machine("$a0"); // save expr
+                        gencode_array_offset(r->var->array_expr); // get offset
+                        fprintf(yyout,"lw $t1, %d($fp)\n",varOffset); // get addr
+                        fprintf(yyout,"add $t1, $t1, $a0\n"); // add offset
+                        pop_stack_machine("$a0"); // restore expr
+                        fprintf(yyout,"sw $a0, 0($t1)\n"); // save result at addr
+
+                    }
+                    else { // local array
+                        push_stack_machine("$a0");
+                        gencode_array_offset(r->var->array_expr); // offset in $a0
+                        fprintf(yyout,"add $t1, $fp, %d\n",varOffset); // load var
+                        fprintf(yyout,"add $t1, $t1, $a0\n"); // inc addr
+                        pop_stack_machine("$a0"); // pop to $a0
+                        fprintf(yyout,"sw $a0, 0($t1)\n"); // save result at addr
+                    }
+                } else { // a simple expression, e.g. 3+4 == 1*9
                     gencode((struct ast_node*)r->smp_expr);
                 }
                 break;
@@ -374,31 +416,35 @@ void gencode(struct ast_node* root) {
             { // now a usage of value, see above for assignment
                 struct var_node* r = (struct var_node*)root;
                 struct sym_node* n = table_find(table,r->id);
-                int offsetDirection = n->isParamVar ? 1 : -1;
 #ifdef DEBUG
-                fprintf(yyout,"\n#--- var: %s---\n",r->id);
+                fprintf(yyout,"\n#--- var: %s varNo: %d---\n",r->id,n->varNo);
 #endif
+                int varOffset = get_var_offset(table,n,params);
                 if (n->scope == 0) { // if global
                     if (r->idType == VAR) {
                         fprintf(yyout,"lw $a0, _g_%s\n",r->id); // load global val
                     } else {
-                        gencode((struct ast_node*)r->array_expr);
+                        gencode_array_offset(r->array_expr);
                         fprintf(yyout,"la $t1, _g_%s\n",n->symbol); // load var
-                        fprintf(yyout,"li $t2, 4\n"); // load var
-                        fprintf(yyout,"mult $a0, $t2\n"); // multiple of 4
-                        fprintf(yyout,"mflo $a0\n"); // move result
                         fprintf(yyout,"add $t1, $a0, $t1\n"); // add expr
-                        fprintf(yyout,"lw $a0, 0($t1)\n"); // store the value into the var
+                        fprintf(yyout,"lw $a0, 0($t1)\n"); // read the value from the var
                     }
                 }
                 else if (r->array_expr != NULL) { // array access
-                    gencode((struct ast_node*)r->array_expr); // arrayexpr -> $a0
-                    fprintf(yyout,"add $sp, $sp, $a0\n"); // move to array offset
-                    fprintf(yyout,"lw $t1, %d($fp)\n",offsetDirection*get_var_offset(table,n)); // 
-                    fprintf(yyout,"add $sp, $sp, $a0\n"); // restore sp
-                    fprintf(yyout,"move $a0, $t1\n"); // move the val to acc
-                } else { // regular var access
-                    fprintf(yyout,"lw $a0, %d($fp)\n",offsetDirection*get_var_offset(table,n));
+                    gencode_array_offset(r->array_expr); // arrayexpr -> $a0
+                    if (n->isParamVar) { // param array
+                        fprintf(yyout,"lw $t1, %d($fp)\n",varOffset); // load addr
+                        fprintf(yyout,"add $a0, $a0, $t1\n"); // add offset to it
+                        fprintf(yyout,"lw $a0, 0($a0)\n"); // load from addr
+                    } else { // local array
+                        fprintf(yyout,"add $t1, $fp, %d\n",varOffset);
+                        fprintf(yyout,"add $a0, $a0, $t1\n"); // add var
+                        fprintf(yyout,"lw $a0, 0($a0)\n"); // load from addr
+                    }
+                } else if (r->idType == ARRAY) { // regular array name (for calls)
+                    fprintf(yyout,"la $a0, %d($fp)\n",varOffset); // load address 
+                } else { // var access
+                    fprintf(yyout,"lw $a0, %d($fp)\n",varOffset);
                 }
 
 #ifdef DEBUG
@@ -487,14 +533,15 @@ void gencode(struct ast_node* root) {
                     pop_stack_machine("$t1");
                     switch (r->op) {
                         case MULT:
-                            fprintf(yyout,"mul $a0, $t1, $a0");
+                            fprintf(yyout,"mul $a0, $t1, $a0\n");
                             break;
                         case DIV:
-                            fprintf(yyout,"div $a0, $t1, $a0");
+                            fprintf(yyout,"div $a0, $t1, $a0\n");
                             break;
                         default:
                             break;
                     }
+                    fprintf(yyout,"mflo $a0\n"); // move result
                 }
                 break;
             }
