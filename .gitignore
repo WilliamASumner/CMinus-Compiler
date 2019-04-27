@@ -19,3 +19,4 @@ release/
 *.jar
 cminus
 cminusdebug
+*.asm
