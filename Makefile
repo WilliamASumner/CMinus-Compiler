@@ -14,16 +14,16 @@ RELDIR    := release
 DEBDIR    := debugging
 
 # For building project
-ALLFILES  := parser.tab lex.yy symtable errors ast codegen stack # all needed files
+REGFILES  := symtable errors ast codegen stack # all handwritten src files
+ALLFILES  := $(REGFILES) parser.tab lex.yy # all needed files
 OBJFILES  := $(addprefix $(RELDIR)/, $(addsuffix .o,$(ALLFILES)))
 DOBJFILES := $(addprefix $(DEBDIR)/, $(addsuffix .debug.o,$(ALLFILES)))
 
 # For making a tar
-REGFILES  := symtable errors ast codegen stack # all handwritten src files
 CFILES    := $(addsuffix .c,$(REGFILES))
 HFILES    := $(addsuffix .h,$(REGFILES)) yacc_header.h id.h
-SCRIPTS   := compile.sh run.sh
-TARFILES  := $(CFILES) $(HFILES) parser.y lexer.l oldmakefile
+SHFILES   := compile.sh run.sh
+TARFILES  := $(CFILES) $(HFILES) $(SHFILES) parser.y lexer.l oldmakefile
 PREPOUT   := cminus.tar
 
 TARGET    := cminus
