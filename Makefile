@@ -1,21 +1,30 @@
 #Written by Will Sumner
 #Create parsing program
 #yaccprog.out: parser.tab.c lex.yy.c ast.c ast.h symtable.c symtable.h
-#	gcc -o yaccprog.out parser.tab.c lex.yy.c ast.c symtable.c -ll -ly
+#	$(CC) -o yaccprog.out parser.tab.c lex.yy.c ast.c symtable.c -ll -ly
 
-CC        := gcc
-MKDIR_P   := mkdir -p
-CFLAGS    := -Wall
-DFLAGS    := -g -DDEBUG -O0
-LDFLAGS   := -ll -ly
+CC        := gcc # compiler
+MKDIR_P   := mkdir -p # mkdir command
+CFLAGS    := -Wall # cflags
+DFLAGS    := -g -DDEBUG -O0 # debug flags
+LDFLAGS   := -ll -ly # lex and yacc flags
 
+# dir names
 RELDIR    := release
 DEBDIR    := debugging
 
-FILES     := parser.tab lex.yy symtable errors ast codegen stack
-OBJFILES  := $(addprefix $(RELDIR)/, $(addsuffix .o,$(FILES)))
-DOBJFILES := $(addprefix $(DEBDIR)/, $(addsuffix .debug.o,$(FILES)))
-PREPFILES  := $(addsuffix .*,$(FILES))
+# For building project
+ALLFILES  := parser.tab lex.yy symtable errors ast codegen stack # all needed files
+OBJFILES  := $(addprefix $(RELDIR)/, $(addsuffix .o,$(ALLFILES)))
+DOBJFILES := $(addprefix $(DEBDIR)/, $(addsuffix .debug.o,$(ALLFILES)))
+
+# For making a tar
+REGFILES  := symtable errors ast codegen stack # all handwritten src files
+CFILES    := $(addsuffix .c,$(REGFILES))
+HFILES    := $(addsuffix .h,$(REGFILES)) yacc_header.h id.h
+SCRIPTS   := compile.sh run.sh
+TARFILES  := $(CFILES) $(HFILES) parser.y lexer.l oldmakefile
+PREPOUT   := compiler.tar
 
 TARGET    := yaccprog.out
 DTARGET   := yaccdebug.out
@@ -24,15 +33,16 @@ DTARGET   := yaccdebug.out
 all: $(TARGET)
 debug: $(DTARGET)
 tar: compiler.tar
-compiler.tar:
+
+# Tar when any src files change or prep script changes
+$(PREPOUT): $(PREPFILES) prep.sh
 	./prep.sh
 
-
 $(TARGET): $(OBJFILES)
-	$(CC) $(CFLAGS) -o $(TARGET) $(OBJFILES) $(LDFLAGS)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o $(TARGET) $(OBJFILES)
 
 $(DTARGET): $(DOBJFILES)
-	$(CC) $(DFLAGS) $(CFLAGS) -o $(DTARGET) $(DOBJFILES) $(LDFLAGS)
+	$(CC) $(CFLAGS) $(LDFLAGS) $(DFLAGS) -o $(DTARGET) $(DOBJFILES)
 
 $(OBJFILES):  | $(RELDIR)
 $(DOBJFILES): | $(DEBDIR)
@@ -49,50 +59,50 @@ $(DEBDIR):
 ###################################
 
 $(RELDIR)/parser.tab.o: parser.tab.c yacc_header.h
-	gcc $(CFLAGS) -c parser.tab.c -o $@
+	$(CC) $(CFLAGS) -c parser.tab.c -o $@
 
 $(RELDIR)/lex.yy.o: lex.yy.c
-	gcc -o $@ -c lex.yy.c
+	$(CC) -o $@ -c lex.yy.c
 
 $(RELDIR)/symtable.o: symtable.c symtable.h
-	gcc $(CFLAGS) -c symtable.c -o $@
+	$(CC) $(CFLAGS) -c symtable.c -o $@
 
 $(RELDIR)/errors.o: errors.c errors.h yacc_header.h
-	gcc $(CFLAGS) -c errors.c -o $@
+	$(CC) $(CFLAGS) -c errors.c -o $@
 
 $(RELDIR)/ast.o: ast.c ast.h
-	gcc $(CFLAGS) -c ast.c -o $@
+	$(CC) $(CFLAGS) -c ast.c -o $@
 
 $(RELDIR)/codegen.o: codegen.c codegen.h ast.c ast.h
-	gcc $(CFLAGS) -c codegen.c -o $@
+	$(CC) $(CFLAGS) -c codegen.c -o $@
 
 $(RELDIR)/stack.o: stack.c stack.h
-	gcc $(CFLAGS) -c stack.c -o $@
+	$(CC) $(CFLAGS) -c stack.c -o $@
 
 ###################################
 #########     DEBUG     ###########
 ###################################
 
 $(DEBDIR)/parser.tab.debug.o: parser.tab.c yacc_header.h
-	gcc $(CFLAGS) $(DFLAGS) -c parser.tab.c -o $@
+	$(CC) $(CFLAGS) $(DFLAGS) -c parser.tab.c -o $@
 
 $(DEBDIR)/lex.yy.debug.o: lex.yy.c
-	gcc $(DFLAGS) -c lex.yy.c -o $@
+	$(CC) $(DFLAGS) -c lex.yy.c -o $@ # no cflags due to warnings
 
 $(DEBDIR)/symtable.debug.o: symtable.c symtable.h
-	gcc $(CFLAGS) $(DFLAGS) -c symtable.c -o $@
+	$(CC) $(CFLAGS) $(DFLAGS) -c symtable.c -o $@
 
 $(DEBDIR)/errors.debug.o: errors.c errors.h yacc_header.h
-	gcc $(CFLAGS) $(DFLAGS) -c errors.c -o $@
+	$(CC) $(CFLAGS) $(DFLAGS) -c errors.c -o $@
 
 $(DEBDIR)/ast.debug.o: ast.c ast.h
-	gcc $(CFLAGS) $(DFLAGS) -c ast.c -o $@
+	$(CC) $(CFLAGS) $(DFLAGS) -c ast.c -o $@
 
 $(DEBDIR)/codegen.debug.o: codegen.c codegen.h
-	gcc $(CFLAGS) $(DFLAGS) -c codegen.c -o $@
+	$(CC) $(CFLAGS) $(DFLAGS) -c codegen.c -o $@
 
 $(DEBDIR)/stack.debug.o: stack.c stack.h
-	gcc $(CFLAGS) $(DFLAGS) -c stack.c -o $@
+	$(CC) $(CFLAGS) $(DFLAGS) -c stack.c -o $@
 
 #Create parser.tab.c and parser.tab.h
 parser.tab.c: parser.y lexer.l
@@ -108,4 +118,4 @@ clean:
 	-@rm parser.{output,tab.{h,c}}  2>/dev/null || true # remove parser files
 	-@rm $(TARGET) $(DTARGET)  2>/dev/null || true # remove targets
 	-@rm *.ast *.out *.asm 2>/dev/null || true # remove output files
-	-@rm parser.tar 2>/dev/null || true # remove tar file
+	-@rm $(PREPOUT) 2>/dev/null || true # remove tar file
