@@ -24,19 +24,19 @@ CFILES    := $(addsuffix .c,$(REGFILES))
 HFILES    := $(addsuffix .h,$(REGFILES)) yacc_header.h id.h
 SCRIPTS   := compile.sh run.sh
 TARFILES  := $(CFILES) $(HFILES) parser.y lexer.l oldmakefile
-PREPOUT   := compiler.tar
+PREPOUT   := cminus.tar
 
-TARGET    := yaccprog.out
-DTARGET   := yaccdebug.out
+TARGET    := cminus
+DTARGET   := cminusdebug
 .PHONY    := clean debug-symtable tar
 
 all: $(TARGET)
 debug: $(DTARGET)
-tar: compiler.tar
+tar: $(PREPOUT)
 
 # Tar when any src files change or prep script changes
-$(PREPOUT): $(PREPFILES) prep.sh
-	./prep.sh
+$(PREPOUT): $(TARFILES) prep.sh
+	tar -cvf $(PREPOUT) $(TARFILES)
 
 $(TARGET): $(OBJFILES)
 	$(CC) $(CFLAGS) $(LDFLAGS) -o $(TARGET) $(OBJFILES)
