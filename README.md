@@ -1,5 +1,5 @@
 # CMinus-Compiler
-A basic cminus compiler for the MIPS instruction set
+A basic cminus compiler for the MIPS instruction set.
 
 This project can generates code for the SPIM simulator, and with some extra flags, will work with the MARS simulator (use the `sm` option when running on the command line, the asm files generated start from the `main:` label, which isn't always the first line in the `.text` section).
 
