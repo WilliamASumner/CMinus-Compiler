@@ -35,7 +35,7 @@ debug: $(DTARGET)
 tar: $(PREPOUT)
 
 # Tar when any src files change or prep script changes
-$(PREPOUT): $(TARFILES) prep.sh
+$(PREPOUT): $(TARFILES)
 	tar -cvf $(PREPOUT) $(TARFILES)
 
 $(TARGET): $(OBJFILES)
