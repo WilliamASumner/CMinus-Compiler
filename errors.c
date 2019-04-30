@@ -33,7 +33,7 @@ void print_lexical_error(enum lexical_error_type e, void* s)
             fprintf(stderr,"Unrecognized token \"%s\"",(char *)s);
             break;
         case TOO_BIG_ID:
-            fprintf(stderr,"ID larger than 50 characters: \"%s\"",(char *)s);
+            fprintf(stderr,"ID larger than 32 characters: \"%s\"",(char *)s);
             break;
         default:
             fprintf(stderr,"undefined ast error type encountered\n");

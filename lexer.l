@@ -22,9 +22,9 @@ int to_int(char* str) {
 }
 
 char* to_str(char* str) {
-    if (strlen(str) > 50)
+    if (strlen(str) > 32) // if too large of an id
         throw_lexical_error(TOO_BIG_ID,str);
-    return strdup(str);
+    return strdup(str); // copy str for ast
 }
 %}
 
