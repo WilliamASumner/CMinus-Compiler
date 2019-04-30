@@ -13,7 +13,7 @@ This project can generates code for the SPIM simulator, but with some slight mod
 - `int` and `int[]` variable types
 - recursive function calls
 - the `+`, `-`, `/`, and `*` operators
-- the functions `output(int x)` and `input()` provide basic I/O 
+- the functions `void output(int x)` and `int input(void)` provide basic I/O 
 
 ## Known Limitations:
 - No `float`/`double` support
