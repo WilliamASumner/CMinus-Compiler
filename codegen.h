@@ -1,3 +1,9 @@
+// Code Generation
+// Written by Will Sumner
+// CS 1622: Intro to Compilers
+// University of Pittsburgh, Spring 2019
+// This file contains code for generating MIPS code
+
 #ifndef CODEGEN_H
 #define CODEGEN_H
 #include "ast.h"

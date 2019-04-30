@@ -1,3 +1,8 @@
+// Stack for the Symtable
+// Written by Will Sumner
+// CS 1622: Intro to Compilers
+// University of Pittsburgh, Spring 2019
+// This file contains functions for manipulating stack
 #include <stdlib.h>
 #include "stack.h"
 #include "errors.h"

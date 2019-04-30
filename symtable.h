@@ -1,3 +1,7 @@
+// Symtable
+// Written by Will Sumner
+// CS 1622: Intro to Compilers
+// University of Pittsburgh, Spring 2019
 // Custom Symbol table using a hash table and separate chaining
 #ifndef SYMTABLE_H
 #define SYMTABLE_H

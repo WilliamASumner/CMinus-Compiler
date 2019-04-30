@@ -1,4 +1,10 @@
 %{
+// Lexer for the CMinus language
+// Written by Will Sumner
+// CS 1622: Intro to Compilers
+// University of Pittsburgh, Spring 2019
+// This file contains code for lexical analysis
+
 #include <stdio.h>
 #include <string.h>
 #include "ast.h"

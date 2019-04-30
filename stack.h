@@ -1,3 +1,8 @@
+// Stack for the Symtable
+// Written by Will Sumner
+// CS 1622: Intro to Compilers
+// University of Pittsburgh, Spring 2019
+// This file contains definitions for the stack
 #ifndef STACK_H
 #define STACK_H
 
