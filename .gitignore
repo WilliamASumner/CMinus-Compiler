@@ -21,3 +21,4 @@ cminus
 cminusdebug
 *.asm
 mrun.sh
+wc.sh
